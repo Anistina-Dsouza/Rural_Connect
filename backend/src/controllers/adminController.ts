@@ -29,3 +29,4 @@ export const getDoctors = (req: Request, res: Response) => {
     doctors: store.doctors
   });
 };
+

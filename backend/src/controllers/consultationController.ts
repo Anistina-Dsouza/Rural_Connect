@@ -108,3 +108,4 @@ export const endConsultation = (req: Request, res: Response) => {
     message: 'Consultation successfully concluded'
   });
 };
+

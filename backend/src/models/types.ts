@@ -1,5 +1,6 @@
 export type Language = 'en' | 'hi' | 'gu';
 export type TriageLevel = 'EMERGENCY' | 'CONSULT_SOON' | 'SELF_CARE';
+export type UserRole = 'PATIENT' | 'DOCTOR' | 'ASHA' | 'ADMIN';
 
 export interface IFamilyProfile {
   id: string;
@@ -15,15 +16,38 @@ export interface IFamilyProfile {
 }
 
 export interface IUser {
+  id: string;
+  name: string;
   phoneNumber: string;
+  email?: string;
+  passwordHash?: string;
+  role: UserRole;
   isVerified: boolean;
   consentGiven: boolean;
-  activeProfileId: string;
+  activeProfileId?: string;
   preferredLanguage: Language;
+  createdAt: string;
+
+  doctorDetails?: {
+    registrationNumber: string;
+    councilName: string;
+    specialization: string;
+    experienceYears: number;
+    isNmcVerified: boolean;
+    verificationDate?: string;
+  };
+
+  ashaDetails?: {
+    workerId: string;
+    sector: string;
+    villagePHC: string;
+    householdCount: number;
+  };
 }
 
 export interface IDoctor {
   id: string;
+  userId?: string;
   name: string;
   specialization: string;
   registrationNumber: string;

@@ -40,3 +40,4 @@ console.assert(mildResult.approvedInterimAdvice.length > 0, 'Test 5 Failed: No i
 console.log('✓ Test 5 Passed: Low-acuity classification & clinician-approved interim advice (FR-2.4)');
 
 console.log('All 5 clinical safety test scenarios verified successfully!');
+

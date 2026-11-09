@@ -126,3 +126,4 @@ export const verifyPrescription = (req: Request, res: Response) => {
     }
   });
 };
+

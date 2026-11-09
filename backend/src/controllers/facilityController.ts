@@ -13,3 +13,4 @@ export const getNearbyFacilities = (req: Request, res: Response) => {
     }
   });
 };
+

@@ -13,6 +13,7 @@ import { ApiService } from './services/api';
 import { Header } from './components/Header';
 import { OnboardingModal } from './components/OnboardingModal';
 import { ProfilePicker } from './components/ProfilePicker';
+import { AccountSettingsModal } from './components/AccountSettingsModal';
 import { SymptomChat } from './components/SymptomChat';
 import { EmergencyScreen } from './components/EmergencyScreen';
 import { ConsultationQueue } from './components/ConsultationQueue';
@@ -23,15 +24,18 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { PrescriptionVerifier } from './components/PrescriptionVerifier';
 
 export const App: React.FC = () => {
-  // App Global State
+  // App Global State (FR-1.2: Language selected at first launch, can change anytime)
   const [currentLanguage, setCurrentLanguage] = useState<Language>('hi');
   const [currentRole, setCurrentRole] = useState<UserRole>('PATIENT');
   const [lowBandwidthMode, setLowBandwidthMode] = useState<boolean>(false);
   const [bandwidthMode, setBandwidthMode] = useState<CallBandwidthMode>('ADAPTIVE');
   
-  // Onboarding & Profiles
+  // Section 7.1 Modals: Onboarding (FR-1.1-1.3, 1.6-1.7), Profile Picker (FR-1.4, 1.9), Account Settings (FR-1.3, 1.5, 1.8, 1.9)
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isProfilePickerOpen, setIsProfilePickerOpen] = useState(false);
+  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
+
+  // User Session State (FR-1.1, FR-1.3, FR-1.4, FR-1.8)
   const [userSession, setUserSession] = useState<UserSession>({
     phoneNumber: '9876543210',
     isVerified: true,
@@ -51,7 +55,7 @@ export const App: React.FC = () => {
     avatar: '👩🏽'
   };
 
-  // Assigned Doctor
+  // Licensed Doctor
   const assignedDoctor: Doctor = {
     id: 'doc-1',
     name: 'रमेश पटेल (Dr. Ramesh Patel)',
@@ -106,37 +110,45 @@ export const App: React.FC = () => {
     createdAt: new Date().toISOString()
   });
 
-  // Fetch initial profiles from Backend API on mount
+  // FR-1.8 & FR-1.9: Permanent Device Sign-in Check on App Mount
   useEffect(() => {
-    ApiService.getProfiles(userSession.phoneNumber)
+    const savedPhone = localStorage.getItem('ruralcare_session_phone');
+    const isVerified = localStorage.getItem('ruralcare_session_verified');
+    const consentGiven = localStorage.getItem('ruralcare_session_consent') === 'true';
+
+    if (!savedPhone || !isVerified) {
+      // First launch on this device -> Launch Onboarding flow (FR-1.1, FR-1.2, FR-1.3)
+      setIsOnboardingOpen(true);
+    } else {
+      // FR-1.9: Because phones are often shared in a household, permanent sign-in opens to a profile picker
+      setIsProfilePickerOpen(true);
+    }
+
+    // Load initial profiles from backend (FR-1.4)
+    ApiService.getProfiles(savedPhone || userSession.phoneNumber)
       .then((data) => {
         if (data && data.profiles && data.profiles.length > 0) {
           setUserSession((prev) => ({
             ...prev,
+            phoneNumber: savedPhone || prev.phoneNumber,
+            isVerified: true,
+            consentGiven,
             profiles: data.profiles,
             activeProfileId: data.activeProfileId || data.profiles[0].id
           }));
         }
       })
-      .catch((err) => console.log('Using default profiles while connecting:', err));
+      .catch((err) => console.log('Profile loading note:', err));
+  }, []);
 
-    // Fetch initial prescription from backend
-    ApiService.getPrescription('RC-2026-98124')
-      .then((res) => {
-        if (res && res.prescription) {
-          setCurrentPrescription(res.prescription);
-        }
-      })
-      .catch(() => {});
-  }, [userSession.phoneNumber]);
-
-  // Handlers
+  // Handlers for FR-1
   const handleToggleLowBandwidth = () => {
     const nextState = !lowBandwidthMode;
     setLowBandwidthMode(nextState);
     setBandwidthMode(nextState ? 'AUDIO_ONLY' : 'ADAPTIVE');
   };
 
+  // FR-1.9: Switch active household profile
   const handleSelectProfile = async (profileId: string) => {
     setUserSession((prev) => ({ ...prev, activeProfileId: profileId }));
     try {
@@ -146,6 +158,7 @@ export const App: React.FC = () => {
     }
   };
 
+  // FR-1.4: Add dependent profile (Child, Elder)
   const handleAddProfile = async (newProfile: FamilyProfile) => {
     try {
       const res = await ApiService.addProfile(userSession.phoneNumber, newProfile);
@@ -166,6 +179,52 @@ export const App: React.FC = () => {
       profiles: [...prev.profiles, newProfile],
       activeProfileId: newProfile.id
     }));
+  };
+
+  // FR-1.4: Delete dependent profile
+  const handleDeleteProfile = async (profileId: string) => {
+    try {
+      const res = await ApiService.deleteProfile(profileId, userSession.phoneNumber);
+      if (res && res.profiles) {
+        setUserSession((prev) => ({
+          ...prev,
+          profiles: res.profiles,
+          activeProfileId: res.profiles[0]?.id || ''
+        }));
+      }
+    } catch (err) {
+      setUserSession((prev) => {
+        const filtered = prev.profiles.filter(p => p.id !== profileId);
+        return {
+          ...prev,
+          profiles: filtered,
+          activeProfileId: filtered[0]?.id || ''
+        };
+      });
+    }
+  };
+
+  // FR-1.8: Sign out from device
+  const handleSignOut = () => {
+    localStorage.removeItem('ruralcare_session_phone');
+    localStorage.removeItem('ruralcare_session_verified');
+    localStorage.removeItem('ruralcare_session_consent');
+    setIsAccountSettingsOpen(false);
+    setIsOnboardingOpen(true);
+  };
+
+  // FR-1.5: Account Deletion completed
+  const handleAccountDeleted = () => {
+    setIsAccountSettingsOpen(false);
+    setUserSession({
+      phoneNumber: '',
+      isVerified: false,
+      consentGiven: false,
+      activeProfileId: '',
+      preferredLanguage: 'hi',
+      profiles: []
+    });
+    setIsOnboardingOpen(true);
   };
 
   const handleEmergencyTriggered = (redFlags: string[]) => {
@@ -214,7 +273,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
-      {/* Global Header */}
+      {/* Global Header with FR-1.2 Language Switcher, Profile Switcher & Settings */}
       <Header
         currentLanguage={currentLanguage}
         onLanguageChange={setCurrentLanguage}
@@ -227,6 +286,7 @@ export const App: React.FC = () => {
         }}
         activeProfile={activeProfile}
         onOpenProfilePicker={() => setIsProfilePickerOpen(true)}
+        onOpenAccountSettings={() => setIsAccountSettingsOpen(true)}
         lowBandwidthMode={lowBandwidthMode}
         onToggleLowBandwidth={handleToggleLowBandwidth}
         onTriggerEmergency={() => {
@@ -245,7 +305,7 @@ export const App: React.FC = () => {
               <div className="flex items-center gap-1 overflow-x-auto text-xs font-bold text-slate-600">
                 <button
                   onClick={() => setPatientScreen('CHAT')}
-                  className={`px-3 py-1.5 rounded-lg transition ${
+                  className={`px-3 py-1.5 rounded-xl transition ${
                     patientScreen === 'CHAT' ? 'bg-emerald-600 text-white shadow-xs' : 'hover:bg-slate-200'
                   }`}
                 >
@@ -253,7 +313,7 @@ export const App: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setPatientScreen('QUEUE')}
-                  className={`px-3 py-1.5 rounded-lg transition ${
+                  className={`px-3 py-1.5 rounded-xl transition ${
                     patientScreen === 'QUEUE' ? 'bg-emerald-600 text-white shadow-xs' : 'hover:bg-slate-200'
                   }`}
                 >
@@ -261,7 +321,7 @@ export const App: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setPatientScreen('VIDEO_CALL')}
-                  className={`px-3 py-1.5 rounded-lg transition ${
+                  className={`px-3 py-1.5 rounded-xl transition ${
                     patientScreen === 'VIDEO_CALL' ? 'bg-emerald-600 text-white shadow-xs' : 'hover:bg-slate-200'
                   }`}
                 >
@@ -269,7 +329,7 @@ export const App: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setPatientScreen('PRESCRIPTION')}
-                  className={`px-3 py-1.5 rounded-lg transition ${
+                  className={`px-3 py-1.5 rounded-xl transition ${
                     patientScreen === 'PRESCRIPTION' ? 'bg-emerald-600 text-white shadow-xs' : 'hover:bg-slate-200'
                   }`}
                 >
@@ -277,12 +337,20 @@ export const App: React.FC = () => {
                 </button>
               </div>
 
-              <button
-                onClick={() => setIsOnboardingOpen(true)}
-                className="text-xs text-slate-500 hover:text-slate-800 underline font-medium hidden sm:inline"
-              >
-                Re-test OTP & Consent
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsProfilePickerOpen(true)}
+                  className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 font-bold px-2.5 py-1 rounded-lg border border-emerald-200"
+                >
+                  Family Profiles (FR-1.4)
+                </button>
+                <button
+                  onClick={() => setIsAccountSettingsOpen(true)}
+                  className="text-xs text-slate-600 hover:text-slate-900 underline font-medium"
+                >
+                  Privacy & Consent (FR-1.3, 1.5)
+                </button>
+              </div>
             </div>
 
             {/* Subscreens */}
@@ -370,17 +438,21 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Onboarding / OTP Modal */}
+      {/* SECTION 7.1 MODALS */}
+
+      {/* FR-1.1, FR-1.2, FR-1.3, FR-1.6, FR-1.7: Registration, Language, OTP, Voice Call & Consent */}
       <OnboardingModal
         currentLanguage={currentLanguage}
+        onLanguageChange={setCurrentLanguage}
         isOpen={isOnboardingOpen}
         onComplete={(newSession) => {
           setUserSession(newSession);
           setIsOnboardingOpen(false);
+          setIsProfilePickerOpen(true); // Permanent sign-in opens to profile picker (FR-1.9)
         }}
       />
 
-      {/* Profile Picker Modal */}
+      {/* FR-1.4 & FR-1.9: Shared Household Profile Picker (Name, Photo, Dependents) */}
       <ProfilePicker
         currentLanguage={currentLanguage}
         isOpen={isProfilePickerOpen}
@@ -389,6 +461,20 @@ export const App: React.FC = () => {
         activeProfileId={userSession.activeProfileId}
         onSelectProfile={handleSelectProfile}
         onAddProfile={handleAddProfile}
+        onDeleteProfile={handleDeleteProfile}
+      />
+
+      {/* FR-1.3, FR-1.5, FR-1.8, FR-1.9: Account, Revocable Consent, Data Export & Deletion */}
+      <AccountSettingsModal
+        currentLanguage={currentLanguage}
+        userSession={userSession}
+        isOpen={isAccountSettingsOpen}
+        onClose={() => setIsAccountSettingsOpen(false)}
+        onConsentToggled={(newConsent) => {
+          setUserSession((prev) => ({ ...prev, consentGiven: newConsent }));
+        }}
+        onSignOut={handleSignOut}
+        onAccountDeleted={handleAccountDeleted}
       />
     </div>
   );

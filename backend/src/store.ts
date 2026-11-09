@@ -8,38 +8,43 @@ import {
   IFacility 
 } from './models/types.js';
 
-// In-Memory Repository with Default Rural Pilot Seed Data
 class DataStore {
-  public users: Map<string, IUser> = new Map();
-  public profiles: Map<string, IFamilyProfile[]> = new Map();
+  public users: Map<string, IUser> = new Map(); // Keyed by ID or Phone or Email
+  public profiles: Map<string, IFamilyProfile[]> = new Map(); // Keyed by Phone
   public doctors: IDoctor[] = [];
   public consultations: Map<string, IConsultation> = new Map();
   public prescriptions: Map<string, IPrescription> = new Map();
   public auditLogs: IAuditLog[] = [];
   public facilities: IFacility[] = [];
-  public activeQueue: string[] = []; // Consultation IDs in order
+  public activeQueue: string[] = [];
 
   constructor() {
     this.seedInitialData();
   }
 
   private seedInitialData() {
-    const defaultPhone = '9876543210';
+    const defaultPatientPhone = '9876543210';
     
-    // 1. Default User Session
-    this.users.set(defaultPhone, {
-      phoneNumber: defaultPhone,
+    // 1. Patient User (Sunita Devi)
+    const patientUser: IUser = {
+      id: 'usr-patient-1',
+      name: 'सुनीता देवी (Sunita Devi)',
+      phoneNumber: defaultPatientPhone,
+      role: 'PATIENT',
       isVerified: true,
       consentGiven: true,
       activeProfileId: 'prof-1',
-      preferredLanguage: 'hi'
-    });
+      preferredLanguage: 'hi',
+      createdAt: new Date().toISOString()
+    };
+    this.users.set(defaultPatientPhone, patientUser);
+    this.users.set('usr-patient-1', patientUser);
 
-    // 2. Default Family Profiles (Sunita, Ramesh, Child Raju)
-    this.profiles.set(defaultPhone, [
+    // Patient Family Profiles
+    this.profiles.set(defaultPatientPhone, [
       {
         id: 'prof-1',
-        userId: defaultPhone,
+        userId: defaultPatientPhone,
         name: 'सुनीता देवी (Sunita Devi)',
         relation: 'Self',
         age: 34,
@@ -51,8 +56,8 @@ class DataStore {
       },
       {
         id: 'prof-2',
-        userId: defaultPhone,
-        name: 'रमेश पटेल (Ramesh Patel)',
+        userId: defaultPatientPhone,
+        name: 'रमेश पटेल (Ramesh Patel, Elder)',
         relation: 'Parent',
         age: 62,
         gender: 'Male',
@@ -63,7 +68,7 @@ class DataStore {
       },
       {
         id: 'prof-3',
-        userId: defaultPhone,
+        userId: defaultPatientPhone,
         name: 'राजू (Raju, Child)',
         relation: 'Child',
         age: 4,
@@ -75,7 +80,70 @@ class DataStore {
       }
     ]);
 
-    // 3. Licensed Doctors (Verified against Medical Council)
+    // 2. Doctor User (Dr. Ramesh Patel, MD - NMC Verified)
+    const doctorUser: IUser = {
+      id: 'usr-doc-1',
+      name: 'Dr. Ramesh Patel',
+      email: 'doctor@ruralcare.gov.in',
+      phoneNumber: '9822334455',
+      passwordHash: 'doctor123',
+      role: 'DOCTOR',
+      isVerified: true,
+      consentGiven: true,
+      preferredLanguage: 'en',
+      doctorDetails: {
+        registrationNumber: 'NMC/MCI-2018-84729',
+        councilName: 'Gujarat Medical Council / NMC India',
+        specialization: 'General Physician & Telehealth Specialist',
+        experienceYears: 14,
+        isNmcVerified: true,
+        verificationDate: '2024-01-15'
+      },
+      createdAt: new Date().toISOString()
+    };
+    this.users.set('doctor@ruralcare.gov.in', doctorUser);
+    this.users.set('NMC/MCI-2018-84729', doctorUser);
+    this.users.set('usr-doc-1', doctorUser);
+
+    // 3. ASHA Community Health Worker User (Meena Ben)
+    const ashaUser: IUser = {
+      id: 'usr-asha-1',
+      name: 'मीना बेन (Meena Ben, ASHA Worker)',
+      phoneNumber: '9811223344',
+      passwordHash: 'asha123',
+      role: 'ASHA',
+      isVerified: true,
+      consentGiven: true,
+      preferredLanguage: 'gu',
+      ashaDetails: {
+        workerId: 'ASHA-GUJ-4091',
+        sector: 'Sector 4 Village Cluster',
+        villagePHC: 'Primary Health Centre Taluka-A',
+        householdCount: 120
+      },
+      createdAt: new Date().toISOString()
+    };
+    this.users.set('9811223344', ashaUser);
+    this.users.set('ASHA-GUJ-4091', ashaUser);
+    this.users.set('usr-asha-1', ashaUser);
+
+    // 4. Clinical Governance & Admin Board User
+    const adminUser: IUser = {
+      id: 'usr-admin-1',
+      name: 'Clinical Governance Officer',
+      email: 'admin@ruralcare.gov.in',
+      phoneNumber: '9800112233',
+      passwordHash: 'admin123',
+      role: 'ADMIN',
+      isVerified: true,
+      consentGiven: true,
+      preferredLanguage: 'en',
+      createdAt: new Date().toISOString()
+    };
+    this.users.set('admin@ruralcare.gov.in', adminUser);
+    this.users.set('usr-admin-1', adminUser);
+
+    // 5. Licensed Doctors Pool
     this.doctors = [
       {
         id: 'doc-1',
@@ -103,7 +171,7 @@ class DataStore {
       }
     ];
 
-    // 4. Default Seed Prescription
+    // 6. Default Seed Prescription
     const seedRxId = 'RC-2026-98124';
     this.prescriptions.set(seedRxId, {
       id: seedRxId,
@@ -111,7 +179,7 @@ class DataStore {
       patientName: 'सुनीता देवी (Sunita Devi)',
       patientAge: 34,
       patientGender: 'Female',
-      patientPhone: defaultPhone,
+      patientPhone: defaultPatientPhone,
       doctorName: this.doctors[0].name,
       doctorRegNo: this.doctors[0].registrationNumber,
       doctorCouncil: this.doctors[0].councilName,
@@ -149,12 +217,12 @@ class DataStore {
       createdAt: new Date().toISOString()
     });
 
-    // 5. Audit Log Records (PRD FR-7.4)
+    // 7. Clinical Governance Audit Records
     this.auditLogs = [
       {
         id: 'AUD-891',
         timestamp: '2026-11-09 11:42',
-        patientPhone: defaultPhone,
+        patientPhone: defaultPatientPhone,
         profileName: 'Sunita Devi',
         initialComplaint: 'Chest tightness radiating to left shoulder',
         aiTriageLevel: 'EMERGENCY',
@@ -167,7 +235,7 @@ class DataStore {
       {
         id: 'AUD-890',
         timestamp: '2026-11-09 11:15',
-        patientPhone: defaultPhone,
+        patientPhone: defaultPatientPhone,
         profileName: 'Ramesh Patel',
         initialComplaint: 'High BP medicine refill and mild evening headache for 4 days',
         aiTriageLevel: 'CONSULT_SOON',
@@ -179,7 +247,7 @@ class DataStore {
       }
     ];
 
-    // 6. Nearby Rural Emergency Facilities (PRD FR-3.2)
+    // 8. Nearby Facilities
     this.facilities = [
       {
         id: 'fac-1',

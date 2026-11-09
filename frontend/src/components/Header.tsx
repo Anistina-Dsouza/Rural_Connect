@@ -10,7 +10,9 @@ import {
   ShieldAlert, 
   Wifi, 
   WifiOff,
-  ChevronDown
+  ChevronDown,
+  Settings,
+  ShieldCheck
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -20,6 +22,7 @@ interface HeaderProps {
   onRoleChange: (role: UserRole) => void;
   activeProfile: FamilyProfile | null;
   onOpenProfilePicker: () => void;
+  onOpenAccountSettings?: () => void;
   lowBandwidthMode: boolean;
   onToggleLowBandwidth: () => void;
   onTriggerEmergency: () => void;
@@ -32,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRoleChange,
   activeProfile,
   onOpenProfilePicker,
+  onOpenAccountSettings,
   lowBandwidthMode,
   onToggleLowBandwidth,
   onTriggerEmergency
@@ -55,8 +59,8 @@ export const Header: React.FC<HeaderProps> = ({
             {lowBandwidthMode ? <WifiOff className="w-3.5 h-3.5 text-amber-400" /> : <Wifi className="w-3.5 h-3.5 text-emerald-400" />}
             <span>{lowBandwidthMode ? '2G/3G Low Data: ON (150kbps)' : 'Normal Data'}</span>
           </button>
-          <span className="hidden sm:inline text-slate-400">|</span>
-          <span className="hidden sm:inline text-slate-300">RuralCare Connect v1.0 • India Telemedicine Approved</span>
+          <span className="hidden sm:inline text-slate-500">|</span>
+          <span className="hidden sm:inline text-slate-300">RuralCare Connect • PRD Compliant</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -83,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {t.appTitle}
               </h1>
               <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-1.5 py-0.5 rounded border border-emerald-200">
-                Gov/NGO
+                FR-1 Active
               </span>
             </div>
             <p className="text-[11px] text-slate-500 hidden sm:block">
@@ -94,26 +98,28 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Center / Right Controls */}
         <div className="flex items-center gap-2">
-          {/* Language Switcher */}
+          {/* FR-1.2: Language Switcher (Change anytime) */}
           <div className="relative">
             <select
               value={currentLanguage}
               onChange={(e) => onLanguageChange(e.target.value as Language)}
-              className="appearance-none bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-xs rounded-lg pl-7 pr-7 py-2 cursor-pointer border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="appearance-none bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl pl-7 pr-7 py-2 cursor-pointer border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              title="Change Language anytime (FR-1.2)"
             >
-              <option value="en">English</option>
               <option value="hi">हिन्दी (Hindi)</option>
               <option value="gu">ગુજરાતી (Gujarati)</option>
+              <option value="en">English</option>
             </select>
             <Globe className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2.5 pointer-events-none" />
             <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2 top-2.5 pointer-events-none" />
           </div>
 
-          {/* Active Family Profile Pill (If Patient Role) */}
+          {/* FR-1.4 & FR-1.9: Active Household Profile Pill */}
           {currentRole === 'PATIENT' && activeProfile && (
             <button
               onClick={onOpenProfilePicker}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-semibold transition"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-semibold transition"
+              title="Switch household profile (FR-1.9)"
             >
               <span className="text-base">{activeProfile.avatar}</span>
               <span className="max-w-[70px] sm:max-w-[100px] truncate">{activeProfile.name}</span>
@@ -121,11 +127,22 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
+          {/* FR-1.3, FR-1.5: Account & Privacy Settings Button */}
+          {onOpenAccountSettings && (
+            <button
+              onClick={onOpenAccountSettings}
+              className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition"
+              title="Account, Consent & Privacy Settings (FR-1.3, FR-1.5, FR-1.9)"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
+
           {/* Role Switcher Pill */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
             <button
               onClick={() => onRoleChange('PATIENT')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 currentRole === 'PATIENT'
                   ? 'bg-white text-emerald-700 shadow-sm font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -137,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={() => onRoleChange('DOCTOR')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 currentRole === 'DOCTOR'
                   ? 'bg-white text-blue-700 shadow-sm font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -149,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={() => onRoleChange('ADMIN')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 currentRole === 'ADMIN'
                   ? 'bg-white text-purple-700 shadow-sm font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -164,4 +181,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-
