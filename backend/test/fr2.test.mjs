@@ -5,7 +5,7 @@ import {
   APPROVED_INTERIM_LIBRARY, 
   WARNING_SIGNS, 
   getDisclaimerNotice 
-} from '../src/controllers/triageController.js';
+} from '../dist/controllers/triageController.js';
 
 console.log('==================================================');
 console.log('PRD SECTION 7.2: AI SYMPTOM CHAT (FR-2) VERIFICATION');
