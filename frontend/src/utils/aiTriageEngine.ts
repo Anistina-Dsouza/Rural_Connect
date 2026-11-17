@@ -1,5 +1,5 @@
-import { ClinicalTriageResult, FamilyProfile, Language, TriageLevel } from '../types/index.ts';
-import { APPROVED_INTERIM_ADVICE, RED_FLAG_PATTERNS } from '../data/clinicalLibrary.ts';
+import { ClinicalTriageResult, FamilyProfile, Language, TriageLevel } from '../types';
+import { APPROVED_INTERIM_ADVICE, RED_FLAG_PATTERNS } from '../data/clinicalLibrary';
 
 export interface ChatStepState {
   step: 'INITIAL_COMPLAINT' | 'ASK_DURATION' | 'ASK_SEVERITY' | 'ASK_PREGNANCY_OR_CHRONIC' | 'FINAL_TRIAGE';

@@ -51,6 +51,7 @@ export interface ClinicalTriageResult {
     medications: string[];
   };
   approvedInterimAdvice: string[];
+  warningSignsToWatch?: string[];
   doctorCaseSummary: {
     chiefComplaint: string;
     timeline: string;

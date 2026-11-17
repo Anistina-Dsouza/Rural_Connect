@@ -63,7 +63,8 @@ export const voiceCallOtp = (req: Request, res: Response) => {
 
 // --- FR-1.1 & FR-1.8: OTP Verification & Permanent Device Sign-in ---
 export const verifyOtp = (req: Request, res: Response) => {
-  const { phoneNumber, otp, deviceId = 'device_default' } = req.body;
+  const { phoneNumber, otp, deviceId = 'device_default', role } = req.body;
+
   if (!phoneNumber || !otp) {
     return res.status(400).json({ success: false, message: 'Phone number and OTP code are required.' });
   }
@@ -87,7 +88,7 @@ export const verifyOtp = (req: Request, res: Response) => {
       id: `usr-${Date.now()}`,
       name: 'सुनीता देवी (Sunita Devi)',
       phoneNumber: cleanPhone,
-      role: 'PATIENT',
+      role: role === 'DOCTOR' ? 'DOCTOR' : 'PATIENT',
       isVerified: true,
       consentGiven: false, // FR-1.3: User must explicitly give consent next
       activeProfileId: 'prof-1',

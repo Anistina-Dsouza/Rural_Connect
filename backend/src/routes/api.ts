@@ -17,8 +17,20 @@ import {
   switchActiveProfile 
 } from '../controllers/profileController.js';
 import { assessTriage } from '../controllers/triageController.js';
-import { joinQueue, getQueueStatus, sendInCallChatMessage, endConsultation } from '../controllers/consultationController.js';
-import { createPrescription, getPrescriptionById, verifyPrescription } from '../controllers/prescriptionController.js';
+import { 
+  joinQueue, 
+  getQueueStatus, 
+  getAllQueue,
+  updateConsultationStatus,
+  sendInCallChatMessage, 
+  endConsultation 
+} from '../controllers/consultationController.js';
+import { 
+  createPrescription, 
+  getAllPrescriptions,
+  getPrescriptionById, 
+  verifyPrescription 
+} from '../controllers/prescriptionController.js';
 import { getClinicalMetrics, getAuditLogs, getDoctors } from '../controllers/adminController.js';
 import { getNearbyFacilities } from '../controllers/facilityController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
@@ -72,12 +84,15 @@ router.post('/profiles/switch', switchActiveProfile);
 router.post('/triage/assess', assessTriage);
 
 // Virtual Queue & Consultations (FR-4)
+router.get('/queue', getAllQueue);
 router.post('/queue/join', joinQueue);
 router.get('/queue/:id', getQueueStatus);
+router.patch('/consultations/:id/status', updateConsultationStatus);
 router.post('/consultations/:id/chat', sendInCallChatMessage);
 router.post('/consultations/:id/end', endConsultation);
 
 // Prescriptions & Verification (FR-5)
+router.get('/prescriptions', getAllPrescriptions);
 router.post('/prescriptions', createPrescription);
 router.get('/prescriptions/:id', getPrescriptionById);
 router.get('/prescriptions/verify/:id', verifyPrescription);

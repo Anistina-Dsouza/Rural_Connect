@@ -84,6 +84,21 @@ export const getPrescriptionById = (req: Request, res: Response) => {
   return res.json({ success: true, prescription: rx });
 };
 
+export const getAllPrescriptions = (req: Request, res: Response) => {
+  const { phoneNumber } = req.query;
+  let all = Array.from(store.prescriptions.values());
+
+  if (phoneNumber) {
+    all = all.filter((p) => p.patientPhone === phoneNumber);
+  }
+
+  return res.json({
+    success: true,
+    prescriptions: all.reverse() // Most recent first
+  });
+};
+
+
 export const verifyPrescription = (req: Request, res: Response) => {
   const { id } = req.params;
   const rx = store.prescriptions.get(id.toUpperCase());
