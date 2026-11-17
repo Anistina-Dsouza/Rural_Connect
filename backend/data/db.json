@@ -93,6 +93,14 @@
       "pinProtected": false,
       "preferredLanguage": "en",
       "role": "DOCTOR",
+      "doctorDetails": {
+        "registrationNumber": "NMC/MCI-2018-84729",
+        "councilName": "Gujarat Medical Council / NMC India",
+        "specialization": "General Physician & Telehealth Specialist",
+        "experienceYears": 14,
+        "isNmcVerified": true,
+        "verificationDate": "2024-01-15"
+      },
       "updatedAt": "2026-11-17T12:42:00.383Z"
     },
     "9811223344": {
@@ -653,6 +661,9 @@
           "frequency": "1-0-1 (Morning & Night)",
           "durationDays": 3,
           "timing": "After Food",
+          "instructionEn": "Take 1 tablet after food only if fever or body pain is present.",
+          "instructionHi": "बुखार या शरीर दर्द होने पर ही भोजन के बाद 1 गोली लें।",
+          "instructionGu": "તાવ અથવા અંગ દુખાવા વખતે જ જમ્યા પછી 1 ગોળી લેવી.",
           "_id": "6afc4b98fad4e3274c73568e"
         },
         {
@@ -662,6 +673,9 @@
           "frequency": "0-0-1 (Bedtime)",
           "durationDays": 3,
           "timing": "After Food",
+          "instructionEn": "Take 1 tablet at night for throat irritation and runny nose.",
+          "instructionHi": "गले की खराश के लिए रात को 1 गोली लें।",
+          "instructionGu": "ગળાની ખારાશ માટે રાત્રે 1 ગોળી લેવી.",
           "_id": "6afc4b98fad4e3274c73568f"
         }
       ],
@@ -895,28 +909,32 @@
   },
   "auditLogs": [
     {
-      "redFlagsDetected": [],
-      "reviewedByClinician": false,
-      "_id": "6afc4b98cf418befa6414e07",
       "id": "AUD-891",
-      "__v": 0,
-      "aiTriageLevel": "EMERGENCY",
-      "createdAt": "2026-11-17T12:42:00.492Z",
-      "reviewedByAuditor": false,
       "timestamp": "2026-11-09 11:42",
-      "updatedAt": "2026-11-17T12:42:00.492Z"
+      "patientPhone": "9876543210",
+      "profileName": "Sunita Devi",
+      "initialComplaint": "Chest tightness radiating to left shoulder",
+      "aiTriageLevel": "EMERGENCY",
+      "doctorFinalDisposition": "EMERGENCY",
+      "isConcordant": true,
+      "redFlagsDetected": [
+        "Cardiac & Chest: Potential acute coronary syndrome"
+      ],
+      "reviewedByClinician": true,
+      "clinicalNotes": "Correct emergency escalation. Ambulance 108 dispatched."
     },
     {
-      "redFlagsDetected": [],
-      "reviewedByClinician": false,
-      "_id": "6afc4b98cf418befa6414e08",
       "id": "AUD-890",
-      "__v": 0,
-      "aiTriageLevel": "CONSULT_SOON",
-      "createdAt": "2026-11-17T12:42:00.495Z",
-      "reviewedByAuditor": false,
       "timestamp": "2026-11-09 11:15",
-      "updatedAt": "2026-11-17T12:42:00.495Z"
+      "patientPhone": "9876543210",
+      "profileName": "Ramesh Patel",
+      "initialComplaint": "High BP medicine refill and mild evening headache for 4 days",
+      "aiTriageLevel": "CONSULT_SOON",
+      "doctorFinalDisposition": "CONSULT_SOON",
+      "isConcordant": true,
+      "redFlagsDetected": [],
+      "reviewedByClinician": true,
+      "clinicalNotes": "Amlodipine refill issued successfully."
     }
   ],
   "facilities": [
@@ -930,7 +948,11 @@
       "hasOxygen": true,
       "is24x7": true,
       "name": "Government Community Health Centre (CHC)",
+      "distance": "6.5 km",
       "type": "Community Hospital (24x7 Emergency)",
+      "beds": "30 Beds, Oxygen Available",
+      "phone": "108 / 028-223410",
+      "ambulanceTime": "15-20 mins",
       "updatedAt": "2026-11-17T12:42:00.501Z"
     },
     {
@@ -943,7 +965,11 @@
       "hasOxygen": true,
       "is24x7": true,
       "name": "Primary Health Centre (PHC)",
+      "distance": "2.8 km",
       "type": "Primary Care & Immunization",
+      "beds": "6 Beds, Doctor on duty till 5 PM",
+      "phone": "028-228941",
+      "ambulanceTime": "10-15 mins",
       "updatedAt": "2026-11-17T12:42:00.511Z"
     },
     {
@@ -956,7 +982,11 @@
       "hasOxygen": true,
       "is24x7": true,
       "name": "District Civil Hospital",
+      "distance": "24.0 km",
       "type": "Tertiary Care & Specialist Referral",
+      "beds": "250 Beds, ICU, Trauma Centre, Blood Bank",
+      "phone": "028-299100",
+      "ambulanceTime": "30-40 mins",
       "updatedAt": "2026-11-17T12:42:00.514Z"
     }
   ],

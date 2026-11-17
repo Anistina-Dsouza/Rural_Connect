@@ -226,6 +226,10 @@ export const deleteUserAccount = (req: Request, res: Response) => {
   store.profiles.delete(cleanPhone);
   activeOtps.delete(cleanPhone);
 
+  store.deleteItem('user', user.id, { phoneNumber: cleanPhone });
+  store.deleteItem('profile', '', { userId: cleanPhone });
+  store.scheduleDiskSave();
+
   console.log(`[Account Deletion - FR-1.5] Permanent account deletion executed for +91-${cleanPhone}. All profiles removed.`);
 
   return res.json({

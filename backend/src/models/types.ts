@@ -57,6 +57,8 @@ export interface IDoctor {
   isAvailable: boolean;
   avatar: string;
   rating: number;
+  phoneNumber?: string;
+  phone?: string;
 }
 
 export interface IPrescriptionMedicine {

@@ -49,7 +49,9 @@ export const joinQueue = async (req: Request, res: Response) => {
 
   return res.json({
     success: true,
-    consultation: newConsultation
+    consultation: newConsultation,
+    queuePosition: queuePos,
+    estimatedWaitMinutes: estimatedWait
   });
 };
 

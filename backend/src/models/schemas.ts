@@ -66,6 +66,8 @@ export const DoctorSchema = new Schema<IDoctorDoc>({
   id:                 { type: String, required: true, unique: true, index: true },
   userId:             { type: String },
   name:               { type: String, required: true },
+  phoneNumber:        { type: String },
+  phone:              { type: String },
   specialization:     { type: String, required: true },
   registrationNumber: { type: String, required: true },
   councilName:        { type: String, required: true },

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import { 
   IUser, 
@@ -26,7 +27,13 @@ import {
   FacilityModel
 } from './models/schemas.js';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const BACKEND_DATA_DIR = path.resolve(__dirname, '../data');
+const CWD_DATA_DIR = path.resolve(process.cwd(), 'data');
+const DATA_DIR = fs.existsSync(path.join(BACKEND_DATA_DIR, 'db.json'))
+  ? BACKEND_DATA_DIR
+  : (fs.existsSync(CWD_DATA_DIR) ? CWD_DATA_DIR : BACKEND_DATA_DIR);
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 class DataStore {
@@ -57,25 +64,114 @@ class DataStore {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         const data = JSON.parse(raw);
         if (data.users) {
-          Object.entries(data.users).forEach(([k, v]) => this.users.set(k, v as IUser));
+          Object.entries(data.users).forEach(([k, v]: [string, any]) => {
+            const existing = this.users.get(k);
+            if (existing) {
+              this.users.set(k, {
+                ...existing,
+                ...v,
+                doctorDetails: (v.doctorDetails || existing.doctorDetails)
+                  ? { ...(existing.doctorDetails || {}), ...(v.doctorDetails || {}) }
+                  : undefined,
+                ashaDetails: (v.ashaDetails || existing.ashaDetails)
+                  ? { ...(existing.ashaDetails || {}), ...(v.ashaDetails || {}) }
+                  : undefined
+              });
+            } else {
+              this.users.set(k, v as IUser);
+            }
+          });
         }
         if (data.profiles) {
           Object.entries(data.profiles).forEach(([k, v]) => this.profiles.set(k, v as IFamilyProfile[]));
         }
         if (Array.isArray(data.doctors) && data.doctors.length > 0) {
-          this.doctors = data.doctors;
+          this.doctors = this.doctors.map(seedDoc => {
+            const match = data.doctors.find((d: any) => d.id === seedDoc.id);
+            return match ? { ...seedDoc, ...match } : seedDoc;
+          });
+          data.doctors.forEach((d: any) => {
+            if (!this.doctors.some(existing => existing.id === d.id)) {
+              this.doctors.push(d);
+            }
+          });
         }
         if (data.consultations) {
           Object.entries(data.consultations).forEach(([k, v]) => this.consultations.set(k, v as IConsultation));
         }
         if (data.prescriptions) {
-          Object.entries(data.prescriptions).forEach(([k, v]) => this.prescriptions.set(k, v as IPrescription));
+          Object.entries(data.prescriptions).forEach(([k, v]: [string, any]) => {
+            const existing = this.prescriptions.get(k);
+            if (existing) {
+              const medicines = Array.isArray(v.medicines) && v.medicines.length > 0
+                ? v.medicines.map((m: any, idx: number) => {
+                    const exMed = existing.medicines?.[idx];
+                    if (exMed) {
+                      return {
+                        ...exMed,
+                        ...m,
+                        instructionEn: m.instructionEn || exMed.instructionEn,
+                        instructionHi: m.instructionHi || exMed.instructionHi,
+                        instructionGu: m.instructionGu || exMed.instructionGu
+                      };
+                    }
+                    return m;
+                  })
+                : existing.medicines;
+              this.prescriptions.set(k, {
+                ...existing,
+                ...v,
+                medicines
+              });
+            } else {
+              this.prescriptions.set(k, v as IPrescription);
+            }
+          });
         }
         if (Array.isArray(data.auditLogs) && data.auditLogs.length > 0) {
-          this.auditLogs = data.auditLogs;
+          this.auditLogs = this.auditLogs.map(seedLog => {
+            const match = data.auditLogs.find((l: any) => l.id === seedLog.id);
+            if (match) {
+              return {
+                ...seedLog,
+                ...match,
+                initialComplaint: match.initialComplaint || seedLog.initialComplaint,
+                doctorFinalDisposition: match.doctorFinalDisposition !== undefined ? match.doctorFinalDisposition : seedLog.doctorFinalDisposition,
+                isConcordant: match.isConcordant !== undefined ? match.isConcordant : seedLog.isConcordant,
+                reviewedByClinician: match.reviewedByClinician !== undefined ? match.reviewedByClinician : seedLog.reviewedByClinician,
+                redFlagsDetected: Array.isArray(match.redFlagsDetected) && match.redFlagsDetected.length > 0 ? match.redFlagsDetected : seedLog.redFlagsDetected,
+                clinicalNotes: match.clinicalNotes || seedLog.clinicalNotes
+              };
+            }
+            return seedLog;
+          });
+          data.auditLogs.forEach((l: any) => {
+            if (!this.auditLogs.some(existing => existing.id === l.id)) {
+              this.auditLogs.push(l);
+            }
+          });
         }
         if (Array.isArray(data.facilities) && data.facilities.length > 0) {
-          this.facilities = data.facilities;
+          this.facilities = this.facilities.map(seedFac => {
+            const match = data.facilities.find((f: any) => f.id === seedFac.id);
+            if (match) {
+              return {
+                ...seedFac,
+                ...match,
+                distance: match.distance || seedFac.distance,
+                beds: match.beds || seedFac.beds,
+                ambulanceTime: match.ambulanceTime || seedFac.ambulanceTime,
+                phone: match.phone || seedFac.phone,
+                type: match.type || seedFac.type
+              };
+            }
+            return seedFac;
+          });
+          data.facilities.forEach((f: any) => {
+            if (!this.facilities.some(existing => existing.id === f.id)) {
+              this.facilities.push(f);
+            }
+          });
         }
         if (Array.isArray(data.activeQueue) && data.activeQueue.length > 0) {
           this.activeQueue = data.activeQueue;
@@ -299,7 +395,7 @@ class DataStore {
   }
 
   // Helper to persist changes asynchronously
-  public async saveItem(entity: 'user' | 'profile' | 'consultation' | 'prescription' | 'vitals' | 'followup' | 'referral', data: any) {
+  public async saveItem(entity: 'user' | 'profile' | 'doctor' | 'consultation' | 'prescription' | 'vitals' | 'followup' | 'referral', data: any) {
     this.scheduleDiskSave();
 
     if (mongoose.connection.readyState !== 1) return;
@@ -311,6 +407,9 @@ class DataStore {
           break;
         case 'profile':
           await FamilyProfileModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
+          break;
+        case 'doctor':
+          await DoctorModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
           break;
         case 'consultation':
           await ConsultationModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
@@ -330,6 +429,20 @@ class DataStore {
       }
     } catch (e) {
       // Non-fatal, disk has saved it
+    }
+  }
+
+  public async deleteItem(entity: 'user' | 'profile', id: string, query?: any) {
+    this.scheduleDiskSave();
+    if (mongoose.connection.readyState !== 1) return;
+    try {
+      if (entity === 'user') {
+        await UserModel.deleteMany(query || { id });
+      } else if (entity === 'profile') {
+        await FamilyProfileModel.deleteMany(query || { id });
+      }
+    } catch (e) {
+      // Non-fatal
     }
   }
 
@@ -459,6 +572,8 @@ class DataStore {
       {
         id: 'doc-1',
         name: 'रमेश पटेल (Dr. Ramesh Patel)',
+        phoneNumber: '9822334455',
+        phone: '9822334455',
         specialization: 'General Physician & Telehealth Specialist',
         registrationNumber: 'NMC/MCI-2018-84729',
         councilName: 'Gujarat Medical Council / NMC India',
@@ -471,6 +586,8 @@ class DataStore {
       {
         id: 'doc-2',
         name: 'प्रिया शर्मा (Dr. Priya Sharma)',
+        phoneNumber: '9833445566',
+        phone: '9833445566',
         specialization: 'Family Medicine & Pediatrician',
         registrationNumber: 'NMC/MCI-2020-59218',
         councilName: 'Delhi Medical Council / NMC India',

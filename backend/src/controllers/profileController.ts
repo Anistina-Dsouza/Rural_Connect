@@ -88,6 +88,8 @@ export const updateProfile = (req: Request, res: Response) => {
   if (chronicConditions) target.chronicConditions = chronicConditions;
   if (currentMedications) target.currentMedications = currentMedications;
 
+  store.saveItem('profile', target);
+
   return res.json({
     success: true,
     message: 'Profile updated successfully',
@@ -112,7 +114,10 @@ export const deleteProfile = (req: Request, res: Response) => {
   const user = store.users.get(phoneNumber);
   if (user && user.activeProfileId === id) {
     user.activeProfileId = filtered[0]?.id || '';
+    store.saveItem('user', user);
   }
+
+  store.deleteItem('profile', id);
 
   return res.json({
     success: true,
@@ -129,6 +134,7 @@ export const switchActiveProfile = (req: Request, res: Response) => {
 
   if (user) {
     user.activeProfileId = profileId;
+    store.saveItem('user', user);
   }
 
   return res.json({
