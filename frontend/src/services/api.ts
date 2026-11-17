@@ -1,12 +1,16 @@
 import { ClinicalTriageResult, FamilyProfile, Language, Prescription, Doctor, AuditRecord } from '../types';
+import { getAuthToken } from './auth';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5020/api';
 
 async function apiRequest<T = any>(endpoint: string, options?: RequestInit, fallbackData?: T): Promise<T> {
   try {
+    const token = getAuthToken();
+    const authHeaders: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
       },
       ...options,
     });
@@ -222,6 +226,31 @@ export const ApiService = {
 
   async getAuditLogs(): Promise<{ success: boolean; auditLogs: AuditRecord[] }> {
     return apiRequest('/admin/audit', {
+      method: 'GET',
+    });
+  },
+
+  async getDoctors(): Promise<{ success: boolean; doctors: Doctor[] }> {
+    return apiRequest('/admin/doctors', {
+      method: 'GET',
+    });
+  },
+
+  async getMe(): Promise<{ success: boolean; user?: any; profiles?: FamilyProfile[] }> {
+    return apiRequest('/auth/me', {
+      method: 'GET',
+    }, { success: false });
+  },
+
+  async updateDoctorAvailability(doctorId: string, isAvailable: boolean): Promise<{ success: boolean }> {
+    return apiRequest(`/doctors/${doctorId}/availability`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isAvailable }),
+    }, { success: true });
+  },
+
+  async getZoomMeeting(consultationId: string): Promise<{ success: boolean; zoomMeeting: any }> {
+    return apiRequest(`/consultations/${consultationId}/zoom`, {
       method: 'GET',
     });
   },

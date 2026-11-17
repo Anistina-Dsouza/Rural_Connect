@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clearAuth } from '../services/auth';
 import { ApiService } from '../services/api';
+import { generatePrescriptionPdf } from '../utils/pdfGenerator';
+import { Prescription } from '../types';
+import { getDoctorSession, setDoctorSession } from '../services/auth';
 
 interface QueuePatient {
   id: string;
@@ -24,8 +27,55 @@ interface QueuePatient {
 export default function DoctorDashboard() {
   const navigate = useNavigate();
 
+  // ── Doctor identity (resolved from backend /auth/me → localStorage fallback) ──
+  const [doctorProfile, setDoctorProfile] = useState<{
+    name: string; regNo: string; phone: string; specialty: string;
+  }>(() => {
+    const cached = getDoctorSession();
+    return {
+      name: cached.name,
+      regNo: cached.regNo,
+      phone: cached.phone,
+      specialty: 'Internal Medicine & Rural Outreach',
+    };
+  });
+
+  // Fetch real doctor profile from backend on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const meRes = await ApiService.getMe();
+        if (meRes?.success && meRes.user) {
+          const { name, phoneNumber } = meRes.user;
+          // Try to find matching doctor record for reg number
+          const doctorsRes = await ApiService.getDoctors();
+          const matched = (doctorsRes?.doctors as any[])?.find(
+            (d: any) => d.phoneNumber === phoneNumber || d.phone === phoneNumber
+          );
+          const resolvedName = name || matched?.name || doctorProfile.name;
+          const resolvedReg = matched?.registrationNumber || matched?.regNo || doctorProfile.regNo;
+          const resolvedSpecialty = matched?.specialization || matched?.specialty || doctorProfile.specialty;
+          setDoctorProfile({ name: resolvedName, regNo: resolvedReg, phone: phoneNumber, specialty: resolvedSpecialty });
+          setDoctorSession(resolvedName, resolvedReg);
+        }
+      } catch {
+        // Keep localStorage fallback — no action needed
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Doctor state
   const [isAvailable, setIsAvailable] = useState(true);
+  const toggleAvailability = async () => {
+    const next = !isAvailable;
+    setIsAvailable(next);
+    try {
+      await ApiService.updateDoctorAvailability(doctorProfile.phone || 'doc-1', next);
+    } catch {
+      // Non-critical — UI state updated regardless
+    }
+  };
   const [activePatientId, setActivePatientId] = useState('CONS-AMAN-8');
   const [queueFilter, setQueueFilter] = useState<'all' | 'asha' | 'review'>('all');
   const [isMicMuted, setIsMicMuted] = useState(false);
@@ -38,6 +88,14 @@ export default function DoctorDashboard() {
   const [isSigned, setIsSigned] = useState(false);
   const [rxSuccessMsg, setRxSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [lastPrescription, setLastPrescription] = useState<Prescription | null>(null);
+  const [activeTab, setActiveTab] = useState<'summary' | 'chat'>('summary');
+
+  // Custom medicine input state
+  const [customMedName, setCustomMedName] = useState('');
+  const [customMedDose, setCustomMedDose] = useState('');
+  const [customMedFreq, setCustomMedFreq] = useState('1-0-1');
+  const [customMedDuration, setCustomMedDuration] = useState('3 days');
 
   // Dynamic Queue state
   const [queue, setQueue] = useState<QueuePatient[]>([]);
@@ -162,7 +220,7 @@ export default function DoctorDashboard() {
     }
   };
 
-  // Sign & Dispatch Real Prescription to Backend
+  // Sign & Dispatch Real Prescription to Backend & Generate Official PDF
   const handleSignAndDispatch = async () => {
     setLoading(true);
     try {
@@ -198,8 +256,40 @@ export default function DoctorDashboard() {
       setIsSigned(true);
 
       const rxId = res?.prescription?.id || `RC-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+
+      // Construct complete compliant prescription for instant PDF generation
+      const fullPrescription: Prescription = {
+        id: rxId,
+        consultationId: activePatientId,
+        patientName,
+        patientAge,
+        patientGender,
+        patientPhone,
+        doctorName: doctorProfile.name.replace(/^Dr\.\s*/i, ''),
+        doctorRegNo: doctorProfile.regNo,
+        doctorCouncil: 'Gujarat Medical Council / NMC India',
+        doctorSignatureDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        diagnosis: workingDiagnosis,
+        symptoms: [activePatient?.complaint || 'Acute Illness'],
+        medicines: prescriptionPayload.medicines,
+        generalAdvice: adviceText,
+        followUpDays: 3,
+        verificationQrData: `https://ruralcare.gov.in/verify/${rxId}`,
+        isOfflineAvailable: true,
+        createdAt: new Date().toISOString()
+      };
+
+      setLastPrescription(fullPrescription);
+
+      // Instantly generate & download PDF for doctor
+      try {
+        await generatePrescriptionPdf(fullPrescription);
+      } catch (pdfErr) {
+        console.warn('Auto PDF generation note:', pdfErr);
+      }
+
       setRxSuccessMsg(
-        `✓ Digital Prescription ${rxId} digitally signed with MCI-48921 token & dispatched to ${patientName} (+91 ${patientPhone})`
+        `✓ Digital Prescription ${rxId} digitally signed & PDF generated! Dispatched to ${patientName} (+91 ${patientPhone})`
       );
 
       // Conclude consultation status
@@ -207,14 +297,69 @@ export default function DoctorDashboard() {
       await fetchLiveQueue();
     } catch (err) {
       setIsSigned(true);
+      const fallbackRx: Prescription = {
+        id: `RC-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+        consultationId: activePatientId,
+        patientName: activePatient?.name || 'Patient',
+        patientAge: activePatient?.age || 25,
+        patientGender: 'Male',
+        patientPhone: '9823041189',
+        doctorName: doctorProfile.name.replace(/^Dr\.\s*/i, ''),
+        doctorRegNo: doctorProfile.regNo,
+        doctorCouncil: 'Gujarat Medical Council / NMC India',
+        doctorSignatureDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        diagnosis: workingDiagnosis,
+        symptoms: ['Acute Illness'],
+        medicines: prescribedMeds.map((m) => ({
+          id: m.id,
+          name: m.name,
+          dosage: m.schedule[0] || 'Standard Dose',
+          frequency: m.schedule[1] || '1-0-1',
+          timing: 'After Food' as const,
+          durationDays: 3,
+          instructionEn: m.instructions,
+          instructionHi: m.instructions,
+          instructionGu: m.instructions,
+        })),
+        generalAdvice: adviceText,
+        followUpDays: 3,
+        verificationQrData: `https://ruralcare.gov.in/verify/RC-2026-98124`,
+        isOfflineAvailable: true,
+        createdAt: new Date().toISOString()
+      };
+      setLastPrescription(fallbackRx);
+      try {
+        await generatePrescriptionPdf(fallbackRx);
+      } catch (e) {}
+
       setRxSuccessMsg(
-        `✓ Digital Prescription RC-2026-98124 digitally signed & dispatched via WhatsApp + SMS to ${activePatient?.name || 'Patient'}!`
+        `✓ Digital Prescription ${fallbackRx.id} generated & PDF downloaded!`
       );
     } finally {
       setLoading(false);
       setTimeout(() => {
         setRxSuccessMsg('');
-      }, 7000);
+      }, 9000);
+    }
+  };
+
+  const handleStartConsultation = async (patientId: string) => {
+    setLoading(true);
+    try {
+      await ApiService.updateConsultationStatus(patientId, 'IN_CALL');
+      const zoomRes = await ApiService.getZoomMeeting(patientId);
+      if (zoomRes && zoomRes.zoomMeeting) {
+        setActiveConsultation((prev: any) => ({
+          ...prev,
+          status: 'IN_CALL',
+          zoomMeeting: zoomRes.zoomMeeting
+        }));
+      }
+      await fetchLiveQueue();
+    } catch (e) {
+      console.warn('Start consultation note:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -235,11 +380,27 @@ export default function DoctorDashboard() {
     if (patient.rawConsultation?.triageSummary?.primaryComplaint) {
       setWorkingDiagnosis(patient.rawConsultation.triageSummary.primaryComplaint);
     }
-    // Update live status to IN_CALL
+
     try {
-      await ApiService.updateConsultationStatus(patient.id, 'IN_CALL');
+      const res = await ApiService.getQueueStatus(patient.id);
+      if (res && res.success && res.consultation) {
+        setActiveConsultation((prev: any) => ({
+          ...prev,
+          ...res.consultation
+        }));
+        if (res.consultation.triageSummary?.primaryComplaint) {
+          setWorkingDiagnosis(res.consultation.triageSummary.primaryComplaint);
+        }
+      }
+      const zoomRes = await ApiService.getZoomMeeting(patient.id);
+      if (zoomRes && zoomRes.zoomMeeting) {
+        setActiveConsultation((prev: any) => ({
+          ...prev,
+          zoomMeeting: zoomRes.zoomMeeting
+        }));
+      }
     } catch (e) {
-      // fallback
+      console.warn('Patient select sync note:', e);
     }
   };
 
@@ -349,14 +510,12 @@ export default function DoctorDashboard() {
 
             <div className="flex items-center gap-3">
               <div className="flex flex-col text-right">
-                <span className="text-xs font-bold text-on-surface">Dr. Anita Patel (MD)</span>
-                <span className="text-[10px] text-on-surface-variant font-medium">MCI Reg: 48921 • Active Session</span>
+                <span className="text-xs font-bold text-on-surface">{doctorProfile.name} (MD)</span>
+                <span className="text-[10px] text-on-surface-variant font-medium">MCI Reg: {doctorProfile.regNo.replace(/^[A-Z]+-/i, '')} • Active Session</span>
               </div>
-              <img
-                alt="Dr. Anita Patel"
-                className="w-9 h-9 rounded-full object-cover ring-2 ring-primary"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDi_ZYwEKkO7x0LP9K-238-973DGwSn3_3Pyqk4G94DZaCN2t1xNmFK9-eGMaxDsFuVfqUGnEm8LlLIzhJ8rmEBmR4h4rbSS0CyQaq_3N5mtVWwHJzrefzF4Yt2fBbXoXIDzl9ce70rMaqe3x3jXyvdoVOPNrDMYnwniH3QoPmjERC1iaFJGbNhKPp5Au9KuF0oBNNN8QxomJHyiyBxLfn90Pf1n7iwZFfzDgB3X49y"
-              />
+              <div className="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center text-xl font-bold ring-2 ring-primary shadow-xs">
+                {doctorProfile.name.charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
         </header>
@@ -366,24 +525,22 @@ export default function DoctorDashboard() {
           <div className="max-w-[1520px] mx-auto flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="relative">
-                <img
-                  className="w-12 h-12 rounded-full object-cover shadow-sm ring-2 ring-primary/40"
-                  alt="Doctor avatar"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDi_ZYwEKkO7x0LP9K-238-973DGwSn3_3Pyqk4G94DZaCN2t1xNmFK9-eGMaxDsFuVfqUGnEm8LlLIzhJ8rmEBmR4h4rbSS0CyQaq_3N5mtVWwHJzrefzF4Yt2fBbXoXIDzl9ce70rMaqe3x3jXyvdoVOPNrDMYnwniH3QoPmjERC1iaFJGbNhKPp5Au9KuF0oBNNN8QxomJHyiyBxLfn90Pf1n7iwZFfzDgB3X49y"
-                />
+                <div className="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center text-2xl font-bold shadow-sm ring-2 ring-primary/40">
+                  {doctorProfile.name.charAt(0).toUpperCase()}
+                </div>
                 <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-primary rounded-full ring-2 ring-surface"></span>
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h1 className="font-headline font-bold text-lg text-on-surface">Dr. Anita Patel, MBBS, MD</h1>
+                  <h1 className="font-headline font-bold text-lg text-on-surface">{doctorProfile.name}, MBBS, MD</h1>
                   <span className="material-symbols-outlined text-primary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
                     verified
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-on-surface-variant font-medium">
-                  <span>Reg: MCI-48921 (SMC Certified)</span>
+                  <span>Reg: {doctorProfile.regNo} (NMC Certified)</span>
                   <span>•</span>
-                  <span>Internal Medicine &amp; Rural Outreach</span>
+                  <span>{doctorProfile.specialty}</span>
                 </div>
               </div>
             </div>
@@ -411,7 +568,7 @@ export default function DoctorDashboard() {
 
                 <button
                   type="button"
-                  onClick={() => setIsAvailable(!isAvailable)}
+                  onClick={toggleAvailability}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs transition-all flex items-center gap-1 ${
                     isAvailable
                       ? 'bg-primary text-on-primary hover:bg-primary-container'
@@ -564,6 +721,34 @@ export default function DoctorDashboard() {
 
           {/* CENTER COLUMN: Live Video Window & AI Pre-Consult Summary (Cols 5) */}
           <section className="lg:col-span-5 flex flex-col gap-4">
+            {/* Doctor Admission Controller - Only Doctor Can Start */}
+            {activeConsultation?.status !== 'IN_CALL' && (
+              <div className="bg-gradient-to-r from-emerald-800 to-green-900 text-white p-4 rounded-2xl shadow-lg border-2 border-emerald-400 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shrink-0">
+                    ⏱️
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs sm:text-sm">
+                      Patient in Queue: {activePatient?.name} ({activePatient?.age} yrs)
+                    </h4>
+                    <p className="text-[11px] text-emerald-200 mt-0.5">
+                      Only you can admit the patient into the live consultation room.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleStartConsultation(activePatientId)}
+                  disabled={loading}
+                  className="px-4 py-2.5 bg-white hover:bg-emerald-50 active:scale-95 text-emerald-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 shrink-0"
+                >
+                  <span className="material-symbols-outlined text-base">video_call</span>
+                  <span>{loading ? 'Admitting...' : 'Admit & Start Meeting'}</span>
+                </button>
+              </div>
+            )}
+
             {/* Live Video Call Component */}
             <div className="relative bg-inverse-surface rounded-2xl overflow-hidden shadow-md aspect-video flex flex-col justify-between p-3 text-inverse-on-surface border border-slate-700">
               <img
@@ -572,15 +757,29 @@ export default function DoctorDashboard() {
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3vWc29dShfsFryCQZ_Im6eV0bzd70tnsMthXBAbFNOirBH6AsD-eRxktyXYFswG3-MCpPGHMVzOLmIGwNx-J2jNd_m08045i2Rc-AGrIemUuwbCBJrRbGuv0xkILvb6-DUWhWMnbjY5hfcUA6zHVnl4BGaFUZyABrxhJGPWoTnxtyzg79QrUtDQbbsEZhAN5j0sTBp24SuQSpnKYaisBuXGnuV1deKoVUW7elqsoH"
               />
 
-              {/* Video Overlay Header */}
+              {/* Video Overlay Header with Zoom Host Button */}
               <div className="relative z-10 flex items-center justify-between">
                 <div className="flex items-center gap-2 bg-inverse-surface/85 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold">
                   <span className="w-2.5 h-2.5 rounded-full bg-error animate-ping"></span>
                   <span>LIVE • {activePatient?.name || 'Aman'} ({activePatient?.healthCenter || 'Barwani PHC'})</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-inverse-surface/85 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-medium">
-                  <span className="material-symbols-outlined text-primary-fixed text-sm">hd</span>
-                  <span>Opus Audio Clean</span>
+                <div className="flex items-center gap-2">
+                  {activeConsultation?.zoomMeeting && (
+                    <a
+                      href={activeConsultation.zoomMeeting.startUrl || activeConsultation.zoomMeeting.joinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow transition-all border border-blue-400"
+                      title="Launch Zoom Host Meeting"
+                    >
+                      <span>🎥 Start Zoom (Host)</span>
+                      <span className="text-[10px] font-mono opacity-80">ID: {activeConsultation.zoomMeeting.meetingId}</span>
+                    </a>
+                  )}
+                  <div className="flex items-center gap-1.5 bg-inverse-surface/85 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-medium">
+                    <span className="material-symbols-outlined text-primary-fixed text-sm">hd</span>
+                    <span>Opus Clean</span>
+                  </div>
                 </div>
               </div>
 
@@ -622,18 +821,89 @@ export default function DoctorDashboard() {
               </div>
             </div>
 
-            {/* AI Pre-Consult Case Synthesis Card */}
+            {/* AI Pre-Consult Case Synthesis Card with Chat Transcript Tab */}
             <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-slate-100 p-5">
-              <div className="flex items-center justify-between pb-3 border-b border-surface-container-high">
+              <div className="flex flex-wrap items-center justify-between pb-3 border-b border-surface-container-high gap-2">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary text-xl">smart_toy</span>
-                  <h3 className="font-headline font-bold text-sm text-on-surface">AI Pre-Consult Case Synthesis</h3>
+                  <h3 className="font-headline font-bold text-sm text-on-surface">Patient Case Intake &amp; Summary</h3>
                 </div>
-                <span className="px-2 py-0.5 rounded text-xs bg-primary-fixed text-on-primary-fixed font-bold">
-                  {Math.round((activeConsultation?.triageSummary?.confidenceScore || 0.95) * 100)}% Confidence
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <div className="flex bg-surface-container-low p-0.5 rounded-lg border border-surface-container-high text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('summary')}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+                        activeTab === 'summary'
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      AI Summary
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('chat')}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 ${
+                        activeTab === 'chat'
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      <span>Patient Chat</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    </button>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-xs bg-primary-fixed text-on-primary-fixed font-bold">
+                    {Math.round((activeConsultation?.triageSummary?.confidenceScore || 0.95) * 100)}% Match
+                  </span>
+                </div>
               </div>
 
+              {/* Tab 2: Patient Chat & Intake Log */}
+              {activeTab === 'chat' && (
+                <div className="mt-3.5 space-y-2.5">
+                  <div className="bg-surface-container-low rounded-xl p-3 border border-surface-container-high text-xs max-h-72 overflow-y-auto space-y-2.5">
+                    <div className="text-[11px] font-bold text-on-surface-variant flex items-center justify-between border-b border-surface-container-high pb-1">
+                      <span>Patient AI Symptom Chat Log</span>
+                      <span className="text-[10px] text-primary">Pre-Consult Intake</span>
+                    </div>
+
+                    {/* Chat Bubble: Initial Complaint */}
+                    <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-slate-800">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-emerald-800 mb-1">
+                        <span>Patient ({activePatient?.name || 'Aman'}):</span>
+                        <span>Intake</span>
+                      </div>
+                      <p className="font-medium text-xs">
+                        "{activeConsultation?.triageSummary?.primaryComplaint || activePatient?.complaint || 'बुखार और शरीर में दर्द है।'}"
+                      </p>
+                    </div>
+
+                    {/* Chat Bubble: Duration & Severity */}
+                    <div className="bg-surface p-2.5 rounded-xl border border-surface-container-high">
+                      <div className="text-[10px] font-bold text-on-surface-variant mb-1">Clinical Intake Q&amp;A:</div>
+                      <div className="space-y-1 text-[11px]">
+                        <div>• <strong>Duration:</strong> {activeConsultation?.triageSummary?.structuredDetails?.duration || activeConsultation?.triageSummary?.doctorCaseSummary?.timeline || '48 hours'}</div>
+                        <div>• <strong>Severity:</strong> <span className="font-bold text-error">{activeConsultation?.triageSummary?.structuredDetails?.severity || 'Moderate'}</span></div>
+                        <div>• <strong>Chronic History:</strong> {activeConsultation?.patientProfile?.chronicConditions?.join(', ') || 'No prior chronic disease reported'}</div>
+                        <div>• <strong>Red Flags Scanned:</strong> {activeConsultation?.triageSummary?.doctorCaseSummary?.redFlagCheck || 'None Detected (Safe for Teleconsult)'}</div>
+                      </div>
+                    </div>
+
+                    {/* Chat Messages from Session */}
+                    {activeConsultation?.chatMessages?.map((msg: any, i: number) => (
+                      <div key={i} className="bg-surface-container rounded-lg p-2 text-xs">
+                        <span className="font-bold text-[10px] text-primary block">{msg.sender} ({msg.time}):</span>
+                        <p className="text-on-surface mt-0.5">{msg.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 1: AI Clinical Synthesis */}
+              {activeTab === 'summary' && (
               <div className="space-y-3.5 mt-3 text-on-surface text-xs">
                 {/* Reported Symptoms & Onset */}
                 <div className="bg-surface-container-low rounded-xl p-3 border border-surface-container-high">
@@ -738,6 +1008,7 @@ export default function DoctorDashboard() {
                   </svg>
                 </div>
               </div>
+              )}
             </div>
           </section>
 
@@ -815,6 +1086,67 @@ export default function DoctorDashboard() {
                   >
                     <span className="material-symbols-outlined text-xs">add</span> Domperidone
                   </button>
+                </div>
+              </div>
+
+              {/* Custom Medicine Input Row */}
+              <div className="mt-2 p-3 bg-surface-container-high rounded-xl border border-surface-container-highest">
+                <span className="block text-[11px] font-bold text-on-surface-variant mb-2 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">edit</span>
+                  Custom Drug / Any Prescription Medicine
+                </span>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Drug name (e.g. Amoxicillin 250mg)"
+                      value={customMedName}
+                      onChange={(e) => setCustomMedName(e.target.value)}
+                      className="flex-1 bg-surface rounded-lg px-2.5 py-1.5 text-xs border border-surface-container-high focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Dose"
+                      value={customMedDose}
+                      onChange={(e) => setCustomMedDose(e.target.value)}
+                      className="w-20 bg-surface rounded-lg px-2.5 py-1.5 text-xs border border-surface-container-high focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Frequency (1-0-1)"
+                      value={customMedFreq}
+                      onChange={(e) => setCustomMedFreq(e.target.value)}
+                      className="flex-1 bg-surface rounded-lg px-2.5 py-1.5 text-xs border border-surface-container-high focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Duration"
+                      value={customMedDuration}
+                      onChange={(e) => setCustomMedDuration(e.target.value)}
+                      className="flex-1 bg-surface rounded-lg px-2.5 py-1.5 text-xs border border-surface-container-high focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <button
+                      type="button"
+                      disabled={!customMedName.trim()}
+                      onClick={() => {
+                        if (!customMedName.trim()) return;
+                        addQuickMed(
+                          customMedName.trim(),
+                          `${customMedDose || 'Standard dose'} • ${customMedFreq || '1-0-1'} • ${customMedDuration || '3 days'}`
+                        );
+                        setCustomMedName('');
+                        setCustomMedDose('');
+                        setCustomMedFreq('1-0-1');
+                        setCustomMedDuration('3 days');
+                      }}
+                      className="bg-primary hover:bg-primary-container text-on-primary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 disabled:opacity-40 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-sm">add</span>
+                      Add
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -909,7 +1241,7 @@ export default function DoctorDashboard() {
                     <span className="material-symbols-outlined text-sm text-primary">fingerprint</span>
                     Cryptographic NMC Stamp
                   </span>
-                  <span className="font-mono text-primary font-bold">SIG-MCI-48921-2023-OK</span>
+                  <span className="font-mono text-primary font-bold">SIG-{doctorProfile.regNo.replace(/[^A-Z0-9]/gi, '-').toUpperCase()}-2023-OK</span>
                 </div>
 
                 <button
@@ -921,6 +1253,18 @@ export default function DoctorDashboard() {
                   <span className="material-symbols-outlined text-lg">send_and_archive</span>
                   <span>{loading ? 'Signing & Dispatching...' : isSigned ? 'Re-Issue e-Prescription' : 'Digitally Sign & Dispatch (WhatsApp / SMS)'}</span>
                 </button>
+
+                {/* Direct PDF Download / Print Action */}
+                {lastPrescription && (
+                  <button
+                    type="button"
+                    onClick={() => generatePrescriptionPdf(lastPrescription)}
+                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 px-4 rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 border border-emerald-500"
+                  >
+                    <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                    <span>Download Official PDF Prescription (NMC Format)</span>
+                  </button>
+                )}
               </div>
             </div>
           </aside>

@@ -96,6 +96,7 @@ export const recordPatientVitals = (req: Request, res: Response) => {
   const existing = store.vitals.get(patientPhone) || [];
   existing.unshift(vitalsRecord);
   store.vitals.set(patientPhone, existing);
+  store.saveItem('vitals', vitalsRecord);
 
   return res.json({
     success: true,

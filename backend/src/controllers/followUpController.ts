@@ -38,6 +38,7 @@ export const submitFollowUpCheckIn = (req: Request, res: Response) => {
   const existing = store.followUps.get(prescriptionId) || [];
   existing.unshift(checkInRecord);
   store.followUps.set(prescriptionId, existing);
+  store.saveItem('followup', checkInRecord);
 
   // If escalated, add to active doctor priority queue
   if (shouldEscalate) {

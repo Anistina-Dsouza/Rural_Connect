@@ -27,7 +27,8 @@ import {
   reconnectConsultation,
   updateBandwidthMode,
   createReferralNote,
-  getReferralNote
+  getReferralNote,
+  getZoomMeeting
 } from '../controllers/consultationController.js';
 import { 
   createPrescription, 
@@ -36,7 +37,7 @@ import {
   verifyPrescription,
   getPrescriptionsByPhone
 } from '../controllers/prescriptionController.js';
-import { getClinicalMetrics, getAuditLogs, getDoctors } from '../controllers/adminController.js';
+import { getClinicalMetrics, getAuditLogs, getDoctors, updateDoctorAvailability } from '../controllers/adminController.js';
 import { getNearbyFacilities } from '../controllers/facilityController.js';
 import { 
   getAshaHouseholds, 
@@ -114,6 +115,7 @@ router.post('/consultations/:id/chat', sendInCallChatMessage);
 router.post('/consultations/:id/referral', createReferralNote);
 router.get('/consultations/referrals/:id', getReferralNote);
 router.post('/consultations/:id/end', endConsultation);
+router.get('/consultations/:id/zoom', getZoomMeeting);
 
 // ========================================================
 // SECTION 7.5: PRESCRIPTIONS & DRUG SAFETY (FR-5)
@@ -141,5 +143,6 @@ router.get('/follow-up/:prescriptionId', getFollowUpHistory);
 router.get('/admin/metrics', getClinicalMetrics);
 router.get('/admin/audit', getAuditLogs);
 router.get('/admin/doctors', getDoctors);
+router.patch('/doctors/:id/availability', updateDoctorAvailability);
 
 export default router;

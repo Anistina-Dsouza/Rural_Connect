@@ -62,6 +62,7 @@ export const createPrescription = (req: Request, res: Response) => {
   };
 
   store.prescriptions.set(rxId, newPrescription);
+  store.saveItem('prescription', newPrescription);
 
   return res.json({
     success: true,

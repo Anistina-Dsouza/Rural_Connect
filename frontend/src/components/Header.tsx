@@ -147,42 +147,40 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Role Switcher Pill */}
+          {/* Role Switcher Pill (Patient & Doctor) */}
           <div className="flex items-center bg-surface-container-low p-0.5 rounded-xl border border-surface-container-high">
             <button
-              onClick={() => onRoleChange('PATIENT')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              onClick={() => {
+                onRoleChange('PATIENT');
+                if (window.location.pathname.startsWith('/doctor')) {
+                  navigate('/patient');
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 currentRole === 'PATIENT'
                   ? 'bg-primary text-on-primary shadow-xs'
                   : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               <User className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">{t.patientRole}</span>
+              <span>{t.patientRole}</span>
             </button>
 
             <button
-              onClick={() => onRoleChange('ASHA')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
-                currentRole === 'ASHA'
-                  ? 'bg-white text-rose-700 shadow-sm font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span className="text-xs">👩🏽‍⚕️</span>
-              <span className="hidden md:inline">{t.ashaRole || 'ASHA Worker'}</span>
-            </button>
-
-            <button
-              onClick={() => onRoleChange('DOCTOR')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              onClick={() => {
+                onRoleChange('DOCTOR');
+                if (!window.location.pathname.startsWith('/doctor')) {
+                  navigate('/doctor');
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 currentRole === 'DOCTOR'
                   ? 'bg-tertiary text-on-tertiary shadow-xs'
                   : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               <Stethoscope className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">{t.doctorRole}</span>
+              <span>{t.doctorRole}</span>
             </button>
           </div>
 

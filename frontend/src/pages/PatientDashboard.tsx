@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Language, 
   UserRole, 
@@ -19,12 +20,11 @@ import { EmergencyScreen } from '../components/EmergencyScreen';
 import { ConsultationQueue } from '../components/ConsultationQueue';
 import { VideoCallRoom } from '../components/VideoCallRoom';
 import { PrescriptionViewer } from '../components/PrescriptionViewer';
-import { AdminDashboard } from '../components/AdminDashboard';
 import { PrescriptionVerifier } from '../components/PrescriptionVerifier';
-import { AshaAssistedMode } from '../components/AshaAssistedMode';
 import { FollowUpCheckIn } from '../components/FollowUpCheckIn';
 
 export default function PatientDashboard() {
+  const navigate = useNavigate();
   // App Global State (FR-1.2: Language selected at first launch, can change anytime)
   const [currentLanguage, setCurrentLanguage] = useState<Language>('hi');
   const [currentRole, setCurrentRole] = useState<UserRole>('PATIENT');
@@ -56,8 +56,8 @@ export default function PatientDashboard() {
     avatar: '👩🏽'
   };
 
-  // Licensed Doctor
-  const assignedDoctor: Doctor = {
+  // Licensed Doctor from Database
+  const [assignedDoctor, setAssignedDoctor] = useState<Doctor>({
     id: 'doc-1',
     name: 'रमेश पटेल (Dr. Ramesh Patel)',
     specialization: 'General Physician & Telehealth Specialist',
@@ -68,7 +68,7 @@ export default function PatientDashboard() {
     isAvailable: true,
     avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
     rating: 4.9
-  };
+  });
 
   // Navigation State for patient flow
   type PatientScreen = 'CHAT' | 'EMERGENCY' | 'QUEUE' | 'VIDEO_CALL' | 'PRESCRIPTION' | 'VERIFY' | 'FOLLOW_UP';
@@ -138,6 +138,14 @@ export default function PatientDashboard() {
         }
       })
       .catch(err => console.log('Profile loading note:', err));
+
+    ApiService.getDoctors()
+      .then(res => {
+        if (res && res.success && res.doctors && res.doctors.length > 0) {
+          setAssignedDoctor(res.doctors[0]);
+        }
+      })
+      .catch(err => console.log('Doctor loading note:', err));
   }, []);
 
   // Fetch latest dynamic prescription on switching to PRESCRIPTION tab
@@ -238,8 +246,12 @@ export default function PatientDashboard() {
         onLanguageChange={setCurrentLanguage}
         currentRole={currentRole}
         onRoleChange={role => { 
-          setCurrentRole(role); 
-          if (role === 'PATIENT' && patientScreen === 'VERIFY') setPatientScreen('CHAT'); 
+          if (role === 'DOCTOR') {
+            navigate('/doctor');
+            return;
+          }
+          setCurrentRole('PATIENT'); 
+          if (patientScreen === 'VERIFY') setPatientScreen('CHAT'); 
         }}
         activeProfile={activeProfile}
         onOpenProfilePicker={() => setIsProfilePickerOpen(true)}
@@ -250,110 +262,86 @@ export default function PatientDashboard() {
       />
 
       <main className="flex-1 p-3 sm:p-6">
-        {/* ASHA Mode View */}
-        {currentRole === 'ASHA' && (
-          <AshaAssistedMode
-            currentLanguage={currentLanguage}
-            onSelectPatientForTriage={(profile) => {
-              if (profile) handleSelectProfile(profile.id);
-              setPatientScreen('CHAT');
-              setCurrentRole('PATIENT');
-            }}
-            onEnrollInQueueWithVitals={async (profile) => {
-              if (profile) handleSelectProfile(profile.id);
-              await handleJoinQueue();
-              setCurrentRole('PATIENT');
-              setPatientScreen('QUEUE');
-            }}
-          />
-        )}
-
-        {/* Patient Role Views */}
-        {currentRole === 'PATIENT' && (
-          <div>
-            <div className="max-w-4xl mx-auto mb-4 flex items-center justify-between border-b border-slate-200 pb-2 px-1">
-              <div className="flex items-center gap-1 overflow-x-auto text-xs font-bold text-slate-600">
-                <button onClick={() => setPatientScreen('CHAT')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'CHAT' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>1. Symptom AI Triage</button>
-                <button onClick={() => setPatientScreen('QUEUE')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'QUEUE' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>2. Waiting Queue</button>
-                <button onClick={() => setPatientScreen('VIDEO_CALL')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'VIDEO_CALL' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>3. Video Consult</button>
-                <button onClick={() => setPatientScreen('PRESCRIPTION')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'PRESCRIPTION' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>4. e-Prescription</button>
-                <button onClick={() => setPatientScreen('FOLLOW_UP')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'FOLLOW_UP' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>5. Follow-Up (FR-6)</button>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setIsProfilePickerOpen(true)} className="text-xs text-primary bg-primary-fixed/30 hover:bg-primary-fixed/50 font-bold px-2.5 py-1 rounded-lg border border-primary/20">Family Profiles (FR-1.4)</button>
-                <button onClick={() => setIsAccountSettingsOpen(true)} className="text-xs text-slate-600 hover:text-slate-900 underline font-medium">Privacy &amp; Consent</button>
-              </div>
+        <div>
+          <div className="max-w-4xl mx-auto mb-4 flex items-center justify-between border-b border-slate-200 pb-2 px-1">
+            <div className="flex items-center gap-1 overflow-x-auto text-xs font-bold text-slate-600">
+              <button onClick={() => setPatientScreen('CHAT')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'CHAT' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>1. Symptom AI Triage</button>
+              <button onClick={() => setPatientScreen('QUEUE')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'QUEUE' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>2. Waiting Queue</button>
+              <button onClick={() => setPatientScreen('VIDEO_CALL')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'VIDEO_CALL' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>3. Video Consult</button>
+              <button onClick={() => setPatientScreen('PRESCRIPTION')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'PRESCRIPTION' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>4. e-Prescription</button>
+              <button onClick={() => setPatientScreen('FOLLOW_UP')} className={`px-3 py-1.5 rounded-xl transition ${patientScreen === 'FOLLOW_UP' ? 'bg-primary text-white shadow-xs' : 'hover:bg-slate-200'}`}>5. Follow-Up (FR-6)</button>
             </div>
-
-            {/* Subscreens */}
-            {patientScreen === 'CHAT' && (
-              <SymptomChat
-                currentLanguage={currentLanguage}
-                activeProfile={activeProfile}
-                onTriageComplete={handleTriageComplete}
-                onEmergencyTriggered={handleEmergencyTriggered}
-                onDirectDoctorRequest={handleJoinQueue}
-              />
-            )}
-            {patientScreen === 'EMERGENCY' && (
-              <EmergencyScreen
-                currentLanguage={currentLanguage}
-                redFlags={emergencyRedFlags}
-                onBackToNormal={() => setPatientScreen('CHAT')}
-              />
-            )}
-            {patientScreen === 'QUEUE' && (
-              <ConsultationQueue
-                currentLanguage={currentLanguage}
-                activeProfile={activeProfile}
-                triageSummary={triageSummary}
-                assignedDoctor={assignedDoctor}
-                bandwidthMode={bandwidthMode}
-                onBandwidthChange={setBandwidthMode}
-                onJoinCall={() => setPatientScreen('VIDEO_CALL')}
-              />
-            )}
-            {patientScreen === 'VIDEO_CALL' && (
-              <VideoCallRoom
-                currentLanguage={currentLanguage}
-                activeProfile={activeProfile}
-                assignedDoctor={assignedDoctor}
-                triageSummary={triageSummary}
-                bandwidthMode={bandwidthMode}
-                onEndCall={() => { ApiService.endConsultation(currentConsultationId); setPatientScreen('PRESCRIPTION'); }}
-              />
-            )}
-            {patientScreen === 'PRESCRIPTION' && (
-              <PrescriptionViewer
-                currentLanguage={currentLanguage}
-                prescription={currentPrescription}
-                onVerifyPrescription={id => setPatientScreen('VERIFY')}
-              />
-            )}
-            {patientScreen === 'VERIFY' && (
-              <PrescriptionVerifier
-                currentLanguage={currentLanguage}
-                initialId={currentPrescription.id}
-                onBack={() => setPatientScreen('PRESCRIPTION')}
-              />
-            )}
-            {patientScreen === 'FOLLOW_UP' && (
-              <FollowUpCheckIn
-                currentLanguage={currentLanguage}
-                activeProfile={activeProfile}
-                prescription={currentPrescription}
-                onConsultDoctorReview={() => setPatientScreen('QUEUE')}
-                onEmergencyTriggered={(flags) => handleEmergencyTriggered(flags)}
-                onClose={() => setPatientScreen('PRESCRIPTION')}
-              />
-            )}
+            <div className="flex items-center gap-2">
+              <button onClick={() => setIsProfilePickerOpen(true)} className="text-xs text-primary bg-primary-fixed/30 hover:bg-primary-fixed/50 font-bold px-2.5 py-1 rounded-lg border border-primary/20">Family Profiles (FR-1.4)</button>
+              <button onClick={() => setIsAccountSettingsOpen(true)} className="text-xs text-slate-600 hover:text-slate-900 underline font-medium">Privacy &amp; Consent</button>
+            </div>
           </div>
-        )}
 
-        {/* Admin Governance */}
-        {currentRole === 'ADMIN' && (
-          <AdminDashboard currentLanguage={currentLanguage} />
-        )}
+          {/* Subscreens */}
+          {patientScreen === 'CHAT' && (
+            <SymptomChat
+              currentLanguage={currentLanguage}
+              activeProfile={activeProfile}
+              onTriageComplete={handleTriageComplete}
+              onEmergencyTriggered={handleEmergencyTriggered}
+              onDirectDoctorRequest={handleJoinQueue}
+            />
+          )}
+          {patientScreen === 'EMERGENCY' && (
+            <EmergencyScreen
+              currentLanguage={currentLanguage}
+              redFlags={emergencyRedFlags}
+              onBackToNormal={() => setPatientScreen('CHAT')}
+            />
+          )}
+          {patientScreen === 'QUEUE' && (
+            <ConsultationQueue
+              currentLanguage={currentLanguage}
+              activeProfile={activeProfile}
+              triageSummary={triageSummary}
+              assignedDoctor={assignedDoctor}
+              bandwidthMode={bandwidthMode}
+              onBandwidthChange={setBandwidthMode}
+              onJoinCall={() => setPatientScreen('VIDEO_CALL')}
+              consultationId={currentConsultationId}
+            />
+          )}
+          {patientScreen === 'VIDEO_CALL' && (
+            <VideoCallRoom
+              currentLanguage={currentLanguage}
+              activeProfile={activeProfile}
+              assignedDoctor={assignedDoctor}
+              triageSummary={triageSummary}
+              bandwidthMode={bandwidthMode}
+              consultationId={currentConsultationId}
+              onEndCall={() => { ApiService.endConsultation(currentConsultationId); setPatientScreen('PRESCRIPTION'); }}
+            />
+          )}
+          {patientScreen === 'PRESCRIPTION' && (
+            <PrescriptionViewer
+              currentLanguage={currentLanguage}
+              prescription={currentPrescription}
+              onVerifyPrescription={id => setPatientScreen('VERIFY')}
+            />
+          )}
+          {patientScreen === 'VERIFY' && (
+            <PrescriptionVerifier
+              currentLanguage={currentLanguage}
+              initialId={currentPrescription.id}
+              onBack={() => setPatientScreen('PRESCRIPTION')}
+            />
+          )}
+          {patientScreen === 'FOLLOW_UP' && (
+            <FollowUpCheckIn
+              currentLanguage={currentLanguage}
+              activeProfile={activeProfile}
+              prescription={currentPrescription}
+              onConsultDoctorReview={() => setPatientScreen('QUEUE')}
+              onEmergencyTriggered={(flags) => handleEmergencyTriggered(flags)}
+              onClose={() => setPatientScreen('PRESCRIPTION')}
+            />
+          )}
+        </div>
       </main>
 
       {/* Modals */}

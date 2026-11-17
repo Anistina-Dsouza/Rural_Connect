@@ -7,6 +7,7 @@ import {
   CallBandwidthMode 
 } from '../types';
 import { translations } from '../data/translations';
+import { ApiService } from '../services/api';
 import { 
   Mic, 
   MicOff, 
@@ -16,11 +17,11 @@ import {
   MessageSquare, 
   Wifi, 
   WifiOff, 
-  ShieldAlert, 
-  FileText, 
   Send,
-  AlertCircle,
-  Sparkles
+  Sparkles,
+  ExternalLink,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface VideoCallRoomProps {
@@ -30,6 +31,7 @@ interface VideoCallRoomProps {
   triageSummary: ClinicalTriageResult | null;
   bandwidthMode: CallBandwidthMode;
   onEndCall: () => void;
+  consultationId?: string;
 }
 
 export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
@@ -38,7 +40,8 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   assignedDoctor,
   triageSummary,
   bandwidthMode: initialBandwidthMode,
-  onEndCall
+  onEndCall,
+  consultationId = 'CONS-DEFAULT'
 }) => {
   const t = translations[currentLanguage];
 
@@ -51,12 +54,83 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
     {
       sender: `Dr. ${assignedDoctor.name}`,
       text: 'Namaste! I am reviewing your AI triage summary. How are you feeling right now?',
-      time: '12:01'
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
   const [inCallInput, setInCallInput] = useState('');
-  const [networkQuality, setNetworkQuality] = useState<'GOOD' | 'FAIR' | 'POOR'>('GOOD');
   const [showSummaryDrawer, setShowSummaryDrawer] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Zoom Meeting State
+  const [zoomMeeting, setZoomMeeting] = useState<{
+    meetingId: string;
+    joinUrl: string;
+    password?: string;
+    topic?: string;
+  }>({
+    meetingId: '849 2018 4729',
+    joinUrl: 'https://zoom.us/j/84920184729?pwd=ruralcare',
+    password: 'ruralcare',
+    topic: 'RuralCare Telemedicine Consultation'
+  });
+
+  // Local WebRTC Video Stream Ref
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Fetch real Zoom Meeting details from backend
+  useEffect(() => {
+    if (consultationId && consultationId !== 'CONS-DEFAULT') {
+      ApiService.getZoomMeeting(consultationId)
+        .then((res) => {
+          if (res && res.success && res.zoomMeeting) {
+            setZoomMeeting(res.zoomMeeting);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [consultationId]);
+
+  // WebRTC Camera Activation
+  useEffect(() => {
+    let active = true;
+
+    async function startCamera() {
+      if (!isVideoOn || bandwidthMode === 'AUDIO_ONLY') {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+        }
+        return;
+      }
+
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+            audio: isMicOn
+          });
+          if (active) {
+            streamRef.current = stream;
+            if (localVideoRef.current) {
+              localVideoRef.current.srcObject = stream;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('WebRTC camera preview fallback:', err);
+      }
+    }
+
+    startCamera();
+
+    return () => {
+      active = false;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, [isVideoOn, bandwidthMode, isMicOn]);
 
   // Call timer
   useEffect(() => {
@@ -72,24 +146,35 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
     return `${m}:${s}`;
   };
 
-  const handleSendInCallMessage = (e: React.FormEvent) => {
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleSendInCallMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inCallInput.trim()) return;
 
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        sender: activeProfile.name,
-        text: inCallInput.trim(),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
+    const newMsg = {
+      sender: activeProfile.name,
+      text: inCallInput.trim(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatMessages((prev) => [...prev, newMsg]);
     setInCallInput('');
+
+    try {
+      await ApiService.sendInCallMessage(consultationId, activeProfile.name, newMsg.text);
+    } catch {
+      // fallback handled gracefully
+    }
   };
 
   return (
     <div className="max-w-5xl mx-auto h-[calc(100vh-120px)] flex flex-col bg-slate-950 rounded-2xl overflow-hidden shadow-2xl relative border border-slate-800">
-      {/* Call Top Status Bar */}
+      {/* ── Call Top Status Bar ────────────────────────────────────────── */}
       <div className="bg-slate-900/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between text-white border-b border-slate-800 z-20">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -108,8 +193,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             onClick={() => {
               const nextMode: CallBandwidthMode = bandwidthMode === 'ADAPTIVE' ? 'AUDIO_ONLY' : 'ADAPTIVE';
               setBandwidthMode(nextMode);
-              if (nextMode === 'AUDIO_ONLY') setIsVideoOn(false);
-              else setIsVideoOn(true);
+              setIsVideoOn(nextMode !== 'AUDIO_ONLY');
             }}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${
               bandwidthMode === 'AUDIO_ONLY'
@@ -132,7 +216,53 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
         </div>
       </div>
 
-      {/* Main Video Consultation Stage */}
+      {/* ── Zoom Telemedicine Banner ───────────────────────────────────── */}
+      <div className="bg-gradient-to-r from-blue-900/90 via-blue-800/90 to-indigo-900/90 px-4 py-2 border-b border-blue-700/50 flex flex-wrap items-center justify-between gap-3 text-white z-20">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl">📹</span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-xs tracking-wide">Zoom Video Teleconsultation</span>
+              <span className="bg-blue-500/30 text-blue-200 text-[10px] font-mono px-1.5 py-0.5 rounded border border-blue-400/30">
+                HD 720p / 2G-Resilient
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] text-blue-200 mt-0.5">
+              <span>
+                Meeting ID: <strong className="font-mono text-white">{zoomMeeting.meetingId}</strong>
+              </span>
+              {zoomMeeting.password && (
+                <span>
+                  Passcode: <strong className="font-mono text-white">{zoomMeeting.password}</strong>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => copyToClipboard(zoomMeeting.joinUrl, 'link')}
+            className="flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white text-xs px-2.5 py-1.5 rounded-lg border border-white/20 transition-all font-medium"
+          >
+            {copiedField === 'link' ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedField === 'link' ? 'Copied Link' : 'Copy Link'}</span>
+          </button>
+
+          <a
+            href={zoomMeeting.joinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 active:scale-95 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-md transition-all border border-blue-400"
+          >
+            <span>Launch Zoom Video</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      </div>
+
+      {/* ── Main Video Consultation Stage ─────────────────────────────── */}
       <div className="flex-1 relative flex flex-col md:flex-row overflow-hidden">
         {/* Doctor Video Area (Main) */}
         <div className="flex-1 relative bg-slate-900 flex items-center justify-center p-4">
@@ -145,7 +275,12 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
               />
               <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-white text-xs font-semibold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span>Dr. {assignedDoctor.name} (Live Video)</span>
+                <span>Dr. {assignedDoctor.name} (Live Clinical Stream)</span>
+              </div>
+
+              {/* Zoom In-Call Watermark */}
+              <div className="absolute top-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-white text-[11px] font-bold flex items-center gap-1">
+                <span>Zoom Active</span>
               </div>
             </div>
           ) : (
@@ -161,14 +296,20 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             </div>
           )}
 
-          {/* Self Preview PIP (Bottom Right) */}
-          <div className="absolute bottom-4 right-4 w-28 sm:w-36 h-36 sm:h-48 rounded-xl overflow-hidden bg-slate-800 border-2 border-slate-600 shadow-xl flex items-center justify-center text-white text-center p-2 z-10">
+          {/* Self Preview PIP (Bottom Right) with WebRTC Camera Stream */}
+          <div className="absolute bottom-4 right-4 w-32 sm:w-44 h-40 sm:h-52 rounded-xl overflow-hidden bg-slate-800 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-center z-10">
             {isVideoOn ? (
-              <div className="w-full h-full bg-slate-700 flex flex-col items-center justify-center">
-                <span className="text-3xl">{activeProfile.avatar}</span>
-                <span className="text-[10px] text-slate-300 font-semibold mt-1 truncate px-1">
-                  {activeProfile.name}
-                </span>
+              <div className="relative w-full h-full bg-slate-900 flex items-center justify-center">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-1 left-1 right-1 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] text-slate-200 font-semibold truncate">
+                  You ({activeProfile.name})
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center">
@@ -202,7 +343,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             <form onSubmit={handleSendInCallMessage} className="p-2 border-t border-slate-800 flex gap-2">
               <input
                 type="text"
-                placeholder="Type if audio is breaking..."
+                placeholder="Type if audio drops..."
                 value={inCallInput}
                 onChange={(e) => setInCallInput(e.target.value)}
                 className="flex-1 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg border border-slate-700 focus:outline-none"
@@ -232,7 +373,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Timeline & Duration:</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Timeline &amp; Duration:</span>
                 <p className="font-semibold text-slate-100">{triageSummary.doctorCaseSummary.timeline}</p>
               </div>
 
@@ -255,7 +396,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
         )}
       </div>
 
-      {/* Call Controls Toolbar (Bottom) */}
+      {/* ── Call Controls Toolbar (Bottom) ─────────────────────────────── */}
       <div className="bg-slate-900 px-6 py-4 flex items-center justify-center gap-4 border-t border-slate-800 z-20">
         {/* Mic Toggle */}
         <button
@@ -300,4 +441,3 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
     </div>
   );
 };
-

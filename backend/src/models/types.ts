@@ -109,6 +109,13 @@ export interface IConsultation {
   chatMessages: { sender: string; text: string; time: string }[];
   prescriptionId?: string;
   referralNote?: string;
+  zoomMeeting?: {
+    meetingId: string;
+    joinUrl: string;
+    startUrl?: string;
+    password?: string;
+    topic?: string;
+  };
 }
 
 export interface IAuditLog {

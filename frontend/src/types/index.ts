@@ -104,6 +104,13 @@ export interface ConsultationSession {
   rejoinGracePeriodSeconds: number;
   referralNote?: string;
   prescriptionId?: string;
+  zoomMeeting?: {
+    meetingId: string;
+    joinUrl: string;
+    startUrl?: string;
+    password?: string;
+    topic?: string;
+  };
 }
 
 export interface PrescriptionMedicine {

@@ -53,6 +53,7 @@ export const addProfile = (req: Request, res: Response) => {
 
   existingProfiles.push(newProfile);
   store.profiles.set(cleanPhone, existingProfiles);
+  store.saveItem('profile', { ...newProfile, userId: cleanPhone });
 
   const user = store.users.get(cleanPhone);
   if (user) {

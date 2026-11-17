@@ -149,6 +149,7 @@ export const updateConsent = (req: Request, res: Response) => {
   }
 
   user.consentGiven = !!consentGiven;
+  store.saveItem('user', user);
 
   console.log(`[Consent Audit - FR-1.3] Consent ${consentGiven ? 'GRANTED' : 'REVOKED'} for +91-${cleanPhone} in ${language} at ${new Date().toISOString()}`);
 

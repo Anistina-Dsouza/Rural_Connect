@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { store } from '../store.js';
 import { IConsultation, IReferralNote } from '../models/types.js';
+import { ZoomService } from '../services/zoomService.js';
 
 // --- FR-4.1: Join Virtual Waiting Room Queue ---
-export const joinQueue = (req: Request, res: Response) => {
+export const joinQueue = async (req: Request, res: Response) => {
   const { patientPhoneNumber = '9876543210', patientProfile, triageSummary, bandwidthMode = 'ADAPTIVE' } = req.body;
 
   const consultationId = `CONS-${Date.now().toString().slice(-6)}`;
@@ -13,10 +14,18 @@ export const joinQueue = (req: Request, res: Response) => {
   const queuePos = store.activeQueue.length + 1;
   const estimatedWait = queuePos * 3;
 
+  const profile = patientProfile || (store.profiles.get(patientPhoneNumber) || [])[0];
+
+  // Generate Zoom Teleconsultation Meeting
+  const zoomMeeting = await ZoomService.createMeeting(
+    `RuralCare Telemedicine: ${profile?.name || 'Patient'}`,
+    30
+  );
+
   const newConsultation: IConsultation = {
     id: consultationId,
     patientPhoneNumber,
-    patientProfile: patientProfile || (store.profiles.get(patientPhoneNumber) || [])[0],
+    patientProfile: profile,
     doctor,
     status: 'QUEUED',
     triageSummary,
@@ -24,6 +33,7 @@ export const joinQueue = (req: Request, res: Response) => {
     estimatedWaitMinutes: estimatedWait,
     scheduledAt: new Date().toISOString(),
     bandwidthMode,
+    zoomMeeting,
     chatMessages: [
       {
         sender: `Dr. ${doctor.name}`,
@@ -35,6 +45,7 @@ export const joinQueue = (req: Request, res: Response) => {
 
   store.consultations.set(consultationId, newConsultation);
   store.activeQueue.push(consultationId);
+  store.saveItem('consultation', newConsultation);
 
   return res.json({
     success: true,
@@ -68,6 +79,28 @@ export const getQueueStatus = (req: Request, res: Response) => {
     consultation: consult
   });
 };
+
+export const getZoomMeeting = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const consult = store.consultations.get(id);
+  if (!consult) {
+    return res.status(404).json({ success: false, message: 'Consultation not found' });
+  }
+
+  if (!consult.zoomMeeting) {
+    consult.zoomMeeting = await ZoomService.createMeeting(
+      `RuralCare Telemedicine: ${consult.patientProfile?.name || 'Patient'}`,
+      30
+    );
+    store.saveItem('consultation', consult);
+  }
+
+  return res.json({
+    success: true,
+    zoomMeeting: consult.zoomMeeting
+  });
+};
+
 
 // --- FR-4.3: 5-Minute Reconnect Grace Period Window ---
 export const reconnectConsultation = (req: Request, res: Response) => {
@@ -170,6 +203,7 @@ export const createReferralNote = (req: Request, res: Response) => {
   };
 
   store.referrals.set(refId, referralNote);
+  store.saveItem('referral', referralNote);
 
   // Update consultation status to REFERRED_IN_PERSON
   if (consultationId && store.consultations.has(consultationId)) {
@@ -212,6 +246,8 @@ export const endConsultation = (req: Request, res: Response) => {
     }
   }
 
+  store.saveItem('consultation', consult);
+
   return res.json({
     success: true,
     message: 'Consultation successfully concluded (FR-4.6)'
@@ -219,7 +255,7 @@ export const endConsultation = (req: Request, res: Response) => {
 };
 
 export const getAllQueue = (req: Request, res: Response) => {
-  const queueConsultations = store.activeQueue
+  let queueConsultations = store.activeQueue
     .map((id, index) => {
       const consult = store.consultations.get(id);
       if (!consult) return null;
@@ -229,7 +265,18 @@ export const getAllQueue = (req: Request, res: Response) => {
         estimatedWaitMinutes: index * 4
       };
     })
-    .filter(Boolean);
+    .filter(Boolean) as any[];
+
+  // If activeQueue index is empty, fall back to non-completed consultations in store
+  if (queueConsultations.length === 0 && store.consultations.size > 0) {
+    queueConsultations = Array.from(store.consultations.values())
+      .filter((c) => c.status !== 'COMPLETED' && c.status !== 'CANCELLED')
+      .map((c, idx) => ({
+        ...c,
+        queuePosition: idx + 1,
+        estimatedWaitMinutes: idx * 4
+      }));
+  }
 
   return res.json({
     success: true,
@@ -258,9 +305,13 @@ export const updateConsultationStatus = (req: Request, res: Response) => {
     }
   }
 
+  store.saveItem('consultation', consult);
+
   return res.json({
     success: true,
     consultation: consult
   });
 };
+
+
 

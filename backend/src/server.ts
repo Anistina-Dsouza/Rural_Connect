@@ -8,12 +8,12 @@ import apiRoutes from './routes/api.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5020;
+const PORT = Number(process.env.PORT) || 5020;
 
 // Middleware
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
@@ -34,7 +34,7 @@ app.get('/health', (req, res) => {
 
 // Connect to Database & Start Server
 connectDB().then(() => {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`=================================================`);
     console.log(`RuralCare Connect API Service Running`);
     console.log(`Port: ${PORT}`);
@@ -42,7 +42,15 @@ connectDB().then(() => {
     console.log(`Healthcheck: http://localhost:${PORT}/health`);
     console.log(`=================================================`);
   });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[Server Error] Port ${PORT} is already in use by another process.`);
+      console.error(`Please terminate the existing process or set PORT in .env`);
+    } else {
+      console.error('[Server Error]', err);
+    }
+  });
 });
 
 export default app;
-
