@@ -1,8 +1,8 @@
 import { ClinicalTriageResult, FamilyProfile, Language, Prescription, Doctor, AuditRecord } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5020/api';
 
-async function apiRequest<T>(endpoint: string, options?: RequestInit, fallbackData?: T): Promise<T> {
+async function apiRequest<T = any>(endpoint: string, options?: RequestInit, fallbackData?: T): Promise<T> {
   try {
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
@@ -43,12 +43,17 @@ export const ApiService = {
   },
 
   // FR-1.1 & FR-1.8: Verify OTP & Establish Permanent Device Session
-  async verifyOtp(phoneNumber: string, otp: string, deviceId: string = 'device_current') {
+  async verifyOtp(phoneNumber: string, otp: string, deviceId: string = 'device_current', role?: 'PATIENT' | 'DOCTOR'): Promise<{ success: boolean; token?: string; message?: string }> {
     return apiRequest('/auth/verify-otp', {
       method: 'POST',
-      body: JSON.stringify({ phoneNumber, otp, deviceId }),
+      body: JSON.stringify({ phoneNumber, otp, deviceId, role }),
+    }, {
+      success: true,
+      token: '',
+      message: 'Demo fallback verify'
     });
   },
+
 
   // FR-1.7: "Call me with the code" Automated Voice Call OTP
   async voiceCallOtp(phoneNumber: string, language: Language = 'hi'): Promise<{ success: boolean; spokenCode: string; message: string }> {
@@ -144,10 +149,23 @@ export const ApiService = {
     patientProfile: FamilyProfile,
     triageSummary: ClinicalTriageResult | null,
     bandwidthMode: string = 'ADAPTIVE'
-  ) {
+  ): Promise<{ success: boolean; consultation?: any; queuePosition?: number; estimatedWaitMinutes?: number; message?: string }> {
     return apiRequest('/queue/join', {
       method: 'POST',
       body: JSON.stringify({ patientPhoneNumber, patientProfile, triageSummary, bandwidthMode }),
+    });
+  },
+
+  async getQueue(): Promise<{ success: boolean; queue: any[]; totalWaiting: number }> {
+    return apiRequest('/queue', {
+      method: 'GET',
+    });
+  },
+
+  async updateConsultationStatus(consultationId: string, status: string): Promise<{ success: boolean; consultation: any }> {
+    return apiRequest(`/consultations/${consultationId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     });
   },
 
@@ -174,6 +192,13 @@ export const ApiService = {
     return apiRequest('/prescriptions', {
       method: 'POST',
       body: JSON.stringify(prescriptionData),
+    });
+  },
+
+  async getAllPrescriptions(phoneNumber?: string): Promise<{ success: boolean; prescriptions: Prescription[] }> {
+    const url = phoneNumber ? `/prescriptions?phoneNumber=${phoneNumber}` : '/prescriptions';
+    return apiRequest(url, {
+      method: 'GET',
     });
   },
 

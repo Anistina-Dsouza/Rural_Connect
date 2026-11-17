@@ -349,6 +349,177 @@ class DataStore {
       investigationsRequested: ['12-Lead ECG', 'Serum Creatinine', 'Fasting Blood Sugar'],
       issuedAt: new Date().toISOString()
     });
+
+    // 12. Initial Seed Consultations & Active Queue for Doctor Console
+    const consult1: IConsultation = {
+      id: 'CONS-AMAN-8',
+      patientPhoneNumber: '9823041189',
+      patientProfile: {
+        id: 'prof-aman',
+        userId: '9823041189',
+        name: 'Aman',
+        relation: 'Child',
+        age: 8,
+        gender: 'Male',
+        chronicConditions: ['None'],
+        currentMedications: [],
+        avatar: '👦🏽'
+      },
+      doctor: this.doctors[0],
+      status: 'IN_CALL',
+      triageSummary: {
+        triageLevel: 'CONSULT_SOON',
+        confidenceScore: 0.96,
+        matchedRedFlags: [],
+        primaryComplaint: 'Fever & Vomiting (2 days)',
+        structuredDetails: {
+          duration: '48 Hours',
+          severity: 'Moderate',
+          age: 8,
+          gender: 'Male',
+          pregnancy: false,
+          chronicConditions: [],
+          medications: []
+        },
+        approvedInterimAdvice: [
+          'Give Oral Rehydration Salts (ORS) in sips post loose stools.',
+          'Offer light rice gruel (kanji) and mashed bananas.',
+          'Maintain 6-hour interval between paracetamol doses.'
+        ],
+        doctorCaseSummary: {
+          chiefComplaint: 'Acute vomiting and elevated temperature for 48 hours in pediatric patient.',
+          timeline: 'Started Tuesday night, 3 episodes emesis.',
+          vitalsNotes: 'Temp: 102.1 °F, Capillary refill <2s, alert and tears present.',
+          redFlagCheck: 'No seizure, chest indrawing absent, drinking fluids.',
+          recommendedAction: 'Prescribe WHO ORS, Paracetamol oral suspension, Zinc gluconate. Monitor for 24h.'
+        },
+        disclaimer: 'Ayushman Bharat AI Clinical Decision Support protocol validated.'
+      },
+      queuePosition: 1,
+      estimatedWaitMinutes: 0,
+      scheduledAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+      startedAt: new Date(Date.now() - 1000 * 60 * 6).toISOString(),
+      bandwidthMode: '48KBPS_LITE',
+      chatMessages: [
+        {
+          sender: 'Dr. Anita Patel',
+          text: 'Namaste Sunita ji, I see Aman has high temperature. Has he passed urine today?',
+          time: '06:38 PM'
+        },
+        {
+          sender: 'Sunita Devi (Mother)',
+          text: 'Yes doctor sahiba, he passed urine 2 hours ago. But he vomited after drinking water.',
+          time: '06:40 PM'
+        }
+      ]
+    };
+
+    const consult2: IConsultation = {
+      id: 'CONS-RAMESH-62',
+      patientPhoneNumber: '9876543210',
+      patientProfile: {
+        id: 'prof-2',
+        userId: '9876543210',
+        name: 'Ramesh Patel',
+        relation: 'Parent',
+        age: 62,
+        gender: 'Male',
+        chronicConditions: ['Hypertension', 'Type 2 Diabetes'],
+        currentMedications: ['Amlodipine 5mg', 'Metformin 500mg'],
+        avatar: '👴🏽'
+      },
+      doctor: this.doctors[0],
+      status: 'QUEUED',
+      triageSummary: {
+        triageLevel: 'CONSULT_SOON',
+        confidenceScore: 0.94,
+        matchedRedFlags: [],
+        primaryComplaint: 'Hypertension Review & Medication Refill',
+        structuredDetails: {
+          duration: '4 Days',
+          severity: 'Mild',
+          age: 62,
+          gender: 'Male',
+          pregnancy: false,
+          chronicConditions: ['Hypertension'],
+          medications: ['Amlodipine 5mg']
+        },
+        approvedInterimAdvice: [
+          'Continue low-sodium dietary regimen.',
+          'Log morning and evening blood pressure numbers.'
+        ],
+        doctorCaseSummary: {
+          chiefComplaint: 'Routine hypertension evaluation, BP log check and 30-day refill.',
+          timeline: 'Chronic stable condition.',
+          vitalsNotes: 'Last measured BP at Sub-Centre: 142/88 mmHg, Pulse 74 bpm.',
+          redFlagCheck: 'No chest pain, no dizziness, no shortness of breath.',
+          recommendedAction: 'Renew Amlodipine 5mg OD for 30 days.'
+        },
+        disclaimer: 'Ayushman Bharat AI Clinical Decision Support protocol validated.'
+      },
+      queuePosition: 2,
+      estimatedWaitMinutes: 4,
+      scheduledAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+      bandwidthMode: 'ADAPTIVE',
+      chatMessages: []
+    };
+
+    const consult3: IConsultation = {
+      id: 'CONS-RADHA-29',
+      patientPhoneNumber: '9811223344',
+      patientProfile: {
+        id: 'prof-radha',
+        userId: '9811223344',
+        name: 'Radha',
+        relation: 'Self',
+        age: 29,
+        gender: 'Female',
+        isPregnant: true,
+        chronicConditions: ['None'],
+        currentMedications: ['Iron & Folic Acid'],
+        avatar: '👩🏽'
+      },
+      doctor: this.doctors[0],
+      status: 'QUEUED',
+      triageSummary: {
+        triageLevel: 'CONSULT_SOON',
+        confidenceScore: 0.92,
+        matchedRedFlags: [],
+        primaryComplaint: 'Antenatal Trimester 2 Routine Assessment',
+        structuredDetails: {
+          duration: 'Routine Check',
+          severity: 'Mild',
+          age: 29,
+          gender: 'Female',
+          pregnancy: true,
+          chronicConditions: [],
+          medications: ['IFA tablet']
+        },
+        approvedInterimAdvice: [
+          'Take Iron-Folic acid tablet post meals daily.',
+          'Hydrate well and monitor fetal kicks.'
+        ],
+        doctorCaseSummary: {
+          chiefComplaint: 'Trimester 2 routine ANC checkup with ASHA Meena Ben.',
+          timeline: 'Gestational age 24 weeks.',
+          vitalsNotes: 'Weight 52kg, BP 118/76 mmHg, Hemoglobin 11.2 g/dL.',
+          redFlagCheck: 'No bleeding, no severe edema, no visual disturbances.',
+          recommendedAction: 'Verify tetanus toxoid dose and calcium supplementation.'
+        },
+        disclaimer: 'Ayushman Bharat AI Clinical Decision Support protocol validated.'
+      },
+      queuePosition: 3,
+      estimatedWaitMinutes: 8,
+      scheduledAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      bandwidthMode: 'ADAPTIVE',
+      chatMessages: []
+    };
+
+    this.consultations.set(consult1.id, consult1);
+    this.consultations.set(consult2.id, consult2);
+    this.consultations.set(consult3.id, consult3);
+
+    this.activeQueue = [consult1.id, consult2.id, consult3.id];
   }
 }
 

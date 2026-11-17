@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { App } from './App';
+import App from './App';
 import './index.css';
 
 // Register Service Worker for PWA & Offline Support (FR-5.5)

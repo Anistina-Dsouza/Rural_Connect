@@ -218,4 +218,49 @@ export const endConsultation = (req: Request, res: Response) => {
   });
 };
 
+export const getAllQueue = (req: Request, res: Response) => {
+  const queueConsultations = store.activeQueue
+    .map((id, index) => {
+      const consult = store.consultations.get(id);
+      if (!consult) return null;
+      return {
+        ...consult,
+        queuePosition: index + 1,
+        estimatedWaitMinutes: index * 4
+      };
+    })
+    .filter(Boolean);
+
+  return res.json({
+    success: true,
+    queue: queueConsultations,
+    totalWaiting: queueConsultations.length
+  });
+};
+
+export const updateConsultationStatus = (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const consult = store.consultations.get(id);
+  if (!consult) {
+    return res.status(404).json({ success: false, message: 'Consultation not found' });
+  }
+
+  consult.status = status;
+  if (status === 'IN_CALL' && !consult.startedAt) {
+    consult.startedAt = new Date().toISOString();
+  } else if (status === 'COMPLETED' || status === 'REFERRED_IN_PERSON') {
+    consult.endedAt = new Date().toISOString();
+    const queueIdx = store.activeQueue.indexOf(id);
+    if (queueIdx !== -1) {
+      store.activeQueue.splice(queueIdx, 1);
+    }
+  }
+
+  return res.json({
+    success: true,
+    consultation: consult
+  });
+};
 

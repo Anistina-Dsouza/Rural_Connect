@@ -20,6 +20,8 @@ import { assessTriage } from '../controllers/triageController.js';
 import { 
   joinQueue, 
   getQueueStatus, 
+  getAllQueue,
+  updateConsultationStatus,
   sendInCallChatMessage, 
   endConsultation,
   reconnectConsultation,
@@ -29,6 +31,7 @@ import {
 } from '../controllers/consultationController.js';
 import { 
   createPrescription, 
+  getAllPrescriptions,
   getPrescriptionById, 
   verifyPrescription,
   getPrescriptionsByPhone
@@ -101,8 +104,10 @@ router.get('/facilities', getNearbyFacilities);
 // ========================================================
 // SECTION 7.4: VIRTUAL QUEUE & CONSULTATIONS (FR-4)
 // ========================================================
+router.get('/queue', getAllQueue);
 router.post('/queue/join', joinQueue);
 router.get('/queue/:id', getQueueStatus);
+router.patch('/consultations/:id/status', updateConsultationStatus);
 router.post('/consultations/:id/reconnect', reconnectConsultation);
 router.post('/consultations/:id/bandwidth', updateBandwidthMode);
 router.post('/consultations/:id/chat', sendInCallChatMessage);
@@ -113,6 +118,7 @@ router.post('/consultations/:id/end', endConsultation);
 // ========================================================
 // SECTION 7.5: PRESCRIPTIONS & DRUG SAFETY (FR-5)
 // ========================================================
+router.get('/prescriptions', getAllPrescriptions);
 router.post('/prescriptions', createPrescription);
 router.get('/prescriptions/phone/:phone', getPrescriptionsByPhone);
 router.get('/prescriptions/:id', getPrescriptionById);

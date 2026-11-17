@@ -98,11 +98,13 @@ export interface IConsultation {
   patientPhoneNumber: string;
   patientProfile: IFamilyProfile;
   doctor: IDoctor;
-  status: 'QUEUED' | 'IN_CALL' | 'COMPLETED' | 'CANCELLED';
+  status: 'QUEUED' | 'IN_CALL' | 'COMPLETED' | 'CANCELLED' | 'REFERRED_IN_PERSON';
   triageSummary: any;
   queuePosition: number;
   estimatedWaitMinutes: number;
   scheduledAt: string;
+  startedAt?: string;
+  endedAt?: string;
   bandwidthMode: string;
   chatMessages: { sender: string; text: string; time: string }[];
   prescriptionId?: string;

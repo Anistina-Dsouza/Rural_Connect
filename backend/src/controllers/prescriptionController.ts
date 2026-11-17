@@ -86,7 +86,7 @@ export const getPrescriptionById = (req: Request, res: Response) => {
 
 // --- FR-5.5: Retrieve All Offline Cached Prescriptions for Household Phone ---
 export const getPrescriptionsByPhone = (req: Request, res: Response) => {
-  const phone = (req.params.phone || req.query.phone as string || '9876543210').replace(/\D/g, '').slice(-10);
+  const phone = (req.params.phone || req.query.phone as string || req.query.phoneNumber as string || '9876543210').replace(/\D/g, '').slice(-10);
   const results: IPrescription[] = [];
 
   store.prescriptions.forEach((rx) => {
@@ -108,6 +108,21 @@ export const getPrescriptionsByPhone = (req: Request, res: Response) => {
   });
 };
 
+export const getAllPrescriptions = (req: Request, res: Response) => {
+  const phone = (req.query.phoneNumber as string || req.query.phone as string || '').replace(/\D/g, '').slice(-10);
+  let all = Array.from(store.prescriptions.values());
+
+  if (phone) {
+    all = all.filter((p) => p.patientPhone.endsWith(phone));
+  }
+
+  return res.json({
+    success: true,
+    prescriptions: all.reverse(),
+    count: all.length,
+    isOfflineReady: true
+  });
+};
 export const verifyPrescription = (req: Request, res: Response) => {
   const { id } = req.params;
   const rx = store.prescriptions.get(id.toUpperCase());
