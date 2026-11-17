@@ -1,6 +1,6 @@
 export type Language = 'en' | 'hi' | 'gu';
 
-export type UserRole = 'PATIENT' | 'DOCTOR' | 'ADMIN';
+export type UserRole = 'PATIENT' | 'DOCTOR' | 'ASHA' | 'ADMIN';
 
 export type TriageLevel = 'EMERGENCY' | 'CONSULT_SOON' | 'SELF_CARE';
 
@@ -152,4 +152,58 @@ export interface AuditRecord {
   reviewedByClinician: boolean;
   clinicalNotes?: string;
 }
+
+export interface VitalsRecord {
+  id: string;
+  patientPhone: string;
+  profileId: string;
+  patientName: string;
+  systolicBp: number;
+  diastolicBp: number;
+  spO2: number;
+  pulseRate: number;
+  temperatureF: number;
+  bloodSugarMgDl?: number;
+  recordedByAshaId: string;
+  recordedByAshaName: string;
+  notes?: string;
+  timestamp: string;
+}
+
+export interface FollowUpRecord {
+  id: string;
+  prescriptionId: string;
+  patientPhone: string;
+  profileId: string;
+  patientName: string;
+  status: 'IMPROVED' | 'SAME' | 'WORSENED';
+  feedbackNotes?: string;
+  escalatedToDoctor: boolean;
+  timestamp: string;
+}
+
+export interface ReferralNote {
+  id: string;
+  consultationId: string;
+  patientName: string;
+  patientPhone: string;
+  referringDoctor: string;
+  doctorRegNo: string;
+  targetFacility: string;
+  priority: 'ROUTINE' | 'URGENT' | 'EMERGENCY';
+  clinicalReason: string;
+  investigationsRequested: string[];
+  issuedAt: string;
+}
+
+export interface AshaHousehold {
+  householdId: string;
+  headOfFamily: string;
+  phoneNumber: string;
+  villageSector: string;
+  members: FamilyProfile[];
+  lastAshaVisit: string;
+  highRiskFlags: string[];
+}
+
 

@@ -9,6 +9,7 @@ export const translations = {
     // Roles
     patientRole: 'Patient / Family',
     doctorRole: 'Doctor Console',
+    ashaRole: 'ASHA Health Worker',
     adminRole: 'Admin & Safety',
 
     // Language selector
@@ -103,7 +104,38 @@ export const translations = {
     emergencyRecallRate: 'Emergency Detection Recall',
     aiConcordanceRate: 'Doctor-AI Triage Agreement',
     redFlagAuditLog: 'Red-Flag Triage Audit Log',
-    safetyRules: 'Clinician Safety Rules & Guardrails'
+    safetyRules: 'Clinician Safety Rules & Guardrails',
+
+    // ASHA Assisted Mode (FR-6)
+    ashaDashboard: 'ASHA Village Community Health Console',
+    householdRosterTitle: 'Assigned Village Household Clusters',
+    doorstepVitalsCheck: 'Doorstep Vitals Capture',
+    systolicBp: 'Systolic BP (mmHg)',
+    diastolicBp: 'Diastolic BP (mmHg)',
+    oxygenSaturation: 'Oxygen Saturation (SpO2 %)',
+    pulseRate: 'Pulse Rate (bpm)',
+    bodyTemp: 'Body Temp (°F)',
+    bloodSugar: 'Random Sugar (mg/dL)',
+    saveVitals: 'Log Doorstep Vitals',
+    launchAssistedTriage: 'Assist Patient with Voice AI Triage',
+    bookDoctorQueueWithVitals: 'Enrol in Doctor Queue with Vitals',
+    syncOfflineRecords: 'Sync Offline Vitals Queue',
+
+    // Follow-up Check-in (FR-6.5)
+    followUpTitle: 'Doctor Follow-up Check-in',
+    howAreYouFeeling: 'How are you feeling today compared to when you saw the doctor?',
+    feelingMuchBetter: 'Much Better / Recovered',
+    feelingAboutSame: 'About the Same / Mild Symptoms',
+    feelingWorse: 'Worse / New Pain or Complications',
+    followUpGuidanceBetter: 'Excellent! Please ensure you complete the full course of prescribed medicines even if you feel completely fine.',
+    followUpGuidanceWorse: 'We are connecting you back to the doctor consultation queue with priority review. If you experience severe chest pain or breathlessness, call 108 immediately.',
+    connectDoctorReview: 'Connect to Doctor for Follow-up Review',
+
+    // Clinical Referral (FR-4.5)
+    referralTitle: 'Official In-Person Clinical Referral Note',
+    referredFacility: 'Referred Medical Center',
+    clinicalReason: 'Clinical Referral Reason',
+    priorityUrgent: 'Urgent Referral'
   },
 
   hi: {
@@ -114,6 +146,7 @@ export const translations = {
     // Roles
     patientRole: 'मरीज़ / परिवार',
     doctorRole: 'डॉक्टर कंसोल',
+    ashaRole: 'आशा कार्यकर्ता (ASHA)',
     adminRole: 'प्रशासन व सुरक्षा',
 
     // Language selector
@@ -208,7 +241,38 @@ export const translations = {
     emergencyRecallRate: 'आपातकाल पहचान दर',
     aiConcordanceRate: 'डॉक्टर-एआई सहमति दर',
     redFlagAuditLog: 'रेड-फ्लैग केस ऑडिट लॉग',
-    safetyRules: 'क्लिनिकल सुरक्षा नियम और दिशानिर्देश'
+    safetyRules: 'क्लिनिकल सुरक्षा नियम और दिशानिर्देश',
+
+    // ASHA Assisted Mode (FR-6)
+    ashaDashboard: 'आशा ग्रामीण स्वास्थ्य कंसोल',
+    householdRosterTitle: 'गाँव के आवंटित परिवार व सदस्य',
+    doorstepVitalsCheck: 'घर बैठे स्वास्थ्य जाँच (Vitals)',
+    systolicBp: 'ऊपर का बीपी (सिस्टोलिक mmHg)',
+    diastolicBp: 'नीचे का बीपी (डायस्टोलिक mmHg)',
+    oxygenSaturation: 'खून में ऑक्सीजन (SpO2 %)',
+    pulseRate: 'नाड़ी की गति (धड़कन प्रति मिनट)',
+    bodyTemp: 'शरीर का तापमान (°F)',
+    bloodSugar: 'रैंडम शुगर (mg/dL)',
+    saveVitals: 'जाँच रिपोर्ट सुरक्षित करें',
+    launchAssistedTriage: 'मरीज़ की आवाज़ से लक्षण जाँच कराएं',
+    bookDoctorQueueWithVitals: 'जाँच रिपोर्ट के साथ डॉक्टर कतार में जोड़ें',
+    syncOfflineRecords: 'ऑफ़लाइन रिपोर्ट सिंक करें',
+
+    // Follow-up Check-in (FR-6.5)
+    followUpTitle: 'दवा के बाद स्वास्थ्य समीक्षा (Follow-up)',
+    howAreYouFeeling: 'डॉक्टर से परामर्श के बाद आज आप कैसा महसूस कर रहे हैं?',
+    feelingMuchBetter: 'काफी सुधार हुआ / अब ठीक हैं',
+    feelingAboutSame: 'वैसा ही है / हल्के लक्षण अभी भी हैं',
+    feelingWorse: 'तबीयत और बिगड़ गई / नई परेशानी है',
+    followUpGuidanceBetter: 'बहुत अच्छा! ध्यान रहे कि डॉक्टर द्वारा लिखी पूरी अवधि तक दवा अवश्य लें, भले ही आप ठीक महसूस कर रहे हों।',
+    followUpGuidanceWorse: 'हम आपको तुरंत प्राथमिकता के साथ डॉक्टर से दोबारा जोड़ रहे हैं। छाती में तेज दर्द या सांस लेने में दिक्कत हो तो तुरंत 108 डायल करें।',
+    connectDoctorReview: 'समीक्षा हेतु दोबारा डॉक्टर से जुड़ें',
+
+    // Clinical Referral (FR-4.5)
+    referralTitle: 'अस्पताल व्यक्तिगत जाँच रेफरल पत्र',
+    referredFacility: 'रेफर किया गया स्वास्थ्य केंद्र',
+    clinicalReason: 'रेफर करने का चिकित्सीय कारण',
+    priorityUrgent: 'तात्कालिक रेफरल'
   },
 
   gu: {
@@ -219,6 +283,7 @@ export const translations = {
     // Roles
     patientRole: 'દર્દી / પરિવાર',
     doctorRole: 'ડૉક્ટર કન્સોલ',
+    ashaRole: 'આશા કાર્યકર (ASHA)',
     adminRole: 'વહીવટ અને સુરક્ષા',
 
     // Language selector
@@ -313,7 +378,38 @@ export const translations = {
     emergencyRecallRate: 'કટોકટી ઓળખ દર',
     aiConcordanceRate: 'ડૉક્ટર-AI સંમતિ દર',
     redFlagAuditLog: 'રેડ-ફ્લેગ ઑડિટ લૉગ',
-    safetyRules: 'ક્લિનિકલ સુરક્ષા નિયમો'
+    safetyRules: 'ક્લિનિકલ સુરક્ષા નિયમો',
+
+    // ASHA Assisted Mode (FR-6)
+    ashaDashboard: 'આશા ગ્રામીણ આરોગ્ય કન્સોલ',
+    householdRosterTitle: 'ગામના ફાળવેલ પરિવારો અને સભ્યો',
+    doorstepVitalsCheck: 'ઘર આંગણે આરોગ્ય તપાસ (Vitals)',
+    systolicBp: 'ઉપરનું બીપી (સિસ્ટોલિક mmHg)',
+    diastolicBp: 'નીચેનું બીપી (ડાયાસ્ટોલિક mmHg)',
+    oxygenSaturation: 'ઓક્સિજનનું પ્રમાણ (SpO2 %)',
+    pulseRate: 'નાડી દર (ધબકારા પ્રતિ મિનિટ)',
+    bodyTemp: 'શરીરનું તાપમાન (°F)',
+    bloodSugar: 'રેન્ડમ સુગર (mg/dL)',
+    saveVitals: 'તપાસ નોંધ સાચવો',
+    launchAssistedTriage: 'દર્દીને અવાજ દ્વારા લક્ષણ તપાસ કરાવો',
+    bookDoctorQueueWithVitals: 'તપાસ રિપોર્ટ સાથે ડૉક્ટર કતારમાં જોડો',
+    syncOfflineRecords: 'ઑફલાઇન તપાસ ડેટા સિંક કરો',
+
+    // Follow-up Check-in (FR-6.5)
+    followUpTitle: 'દવા લીધા પછી આરોગ્ય સમીક્ષા (Follow-up)',
+    howAreYouFeeling: 'ડૉક્ટરની સલાહ લીધા પછી આજે તમને કેવું લાગે છે?',
+    feelingMuchBetter: 'ખૂબ સુધારો થયો છે / હવે સારું છે',
+    feelingAboutSame: 'તેમનું તેમ જ છે / હજુ સામાન્ય લક્ષણો છે',
+    feelingWorse: 'તબિયત વધુ બગડી છે / નવી તકલીફ છે',
+    followUpGuidanceBetter: 'ખૂબ સરસ! ધ્યાન રાખો કે ડૉક્ટરે લખેલા દિવસો સુધી દવા પૂરી લેવી, ભલે તમે સારું અનુભવતા હોવ.',
+    followUpGuidanceWorse: 'અમે તમને પ્રાથમિકતા સાથે ફરીથી ડૉક્ટર સાથે જોડી રહ્યા છીએ. છાતીમાં દુખાવો કે શ્વાસમાં તકલીફ હોય તો તરત 108 કૉલ કરો.',
+    connectDoctorReview: 'સમીક્ષા માટે ફરી ડૉક્ટર સાથે જોડાવો',
+
+    // Clinical Referral (FR-4.5)
+    referralTitle: 'હોસ્પિટલ રૂબરૂ તપાસ રેફરલ પત્ર',
+    referredFacility: 'રેફર કરેલ આરોગ્ય કેન્દ્ર',
+    clinicalReason: 'રેફર કરવાનું તબીબી કારણ',
+    priorityUrgent: 'તાકીદનું રેફરલ'
   }
 };
 

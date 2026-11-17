@@ -132,3 +132,46 @@ export interface IFacility {
   phone: string;
   ambulanceTime: string;
 }
+
+export interface IVitalsRecord {
+  id: string;
+  patientPhone: string;
+  profileId: string;
+  patientName: string;
+  systolicBp: number;
+  diastolicBp: number;
+  spO2: number;
+  pulseRate: number;
+  temperatureF: number;
+  bloodSugarMgDl?: number;
+  recordedByAshaId: string;
+  recordedByAshaName: string;
+  notes?: string;
+  timestamp: string;
+}
+
+export interface IFollowUpCheckIn {
+  id: string;
+  prescriptionId: string;
+  patientPhone: string;
+  profileId: string;
+  patientName: string;
+  status: 'IMPROVED' | 'SAME' | 'WORSENED';
+  feedbackNotes?: string;
+  escalatedToDoctor: boolean;
+  timestamp: string;
+}
+
+export interface IReferralNote {
+  id: string;
+  consultationId: string;
+  patientName: string;
+  patientPhone: string;
+  referringDoctor: string;
+  doctorRegNo: string;
+  targetFacility: string;
+  priority: 'ROUTINE' | 'URGENT' | 'EMERGENCY';
+  clinicalReason: string;
+  investigationsRequested: string[];
+  issuedAt: string;
+}

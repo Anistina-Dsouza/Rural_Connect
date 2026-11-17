@@ -17,10 +17,34 @@ import {
   switchActiveProfile 
 } from '../controllers/profileController.js';
 import { assessTriage } from '../controllers/triageController.js';
-import { joinQueue, getQueueStatus, sendInCallChatMessage, endConsultation } from '../controllers/consultationController.js';
-import { createPrescription, getPrescriptionById, verifyPrescription } from '../controllers/prescriptionController.js';
+import { 
+  joinQueue, 
+  getQueueStatus, 
+  sendInCallChatMessage, 
+  endConsultation,
+  reconnectConsultation,
+  updateBandwidthMode,
+  createReferralNote,
+  getReferralNote
+} from '../controllers/consultationController.js';
+import { 
+  createPrescription, 
+  getPrescriptionById, 
+  verifyPrescription,
+  getPrescriptionsByPhone
+} from '../controllers/prescriptionController.js';
 import { getClinicalMetrics, getAuditLogs, getDoctors } from '../controllers/adminController.js';
 import { getNearbyFacilities } from '../controllers/facilityController.js';
+import { 
+  getAshaHouseholds, 
+  recordPatientVitals, 
+  getPatientVitals, 
+  syncOfflineVitals 
+} from '../controllers/ashaController.js';
+import { 
+  submitFollowUpCheckIn, 
+  getFollowUpHistory 
+} from '../controllers/followUpController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = Router();
@@ -65,29 +89,51 @@ router.delete('/profiles/:id', deleteProfile);
 router.post('/profiles/switch', switchActiveProfile);
 
 // ========================================================
-// OTHER PRD CLINICAL ENDPOINTS
+// SECTION 7.2: CLINICAL AI TRIAGE (FR-2.1 to FR-2.9)
 // ========================================================
-
-// AI Triage Assessment (FR-2)
 router.post('/triage/assess', assessTriage);
 
-// Virtual Queue & Consultations (FR-4)
+// ========================================================
+// SECTION 7.3: EMERGENCY RED-FLAG FLOW & FACILITIES (FR-3)
+// ========================================================
+router.get('/facilities', getNearbyFacilities);
+
+// ========================================================
+// SECTION 7.4: VIRTUAL QUEUE & CONSULTATIONS (FR-4)
+// ========================================================
 router.post('/queue/join', joinQueue);
 router.get('/queue/:id', getQueueStatus);
+router.post('/consultations/:id/reconnect', reconnectConsultation);
+router.post('/consultations/:id/bandwidth', updateBandwidthMode);
 router.post('/consultations/:id/chat', sendInCallChatMessage);
+router.post('/consultations/:id/referral', createReferralNote);
+router.get('/consultations/referrals/:id', getReferralNote);
 router.post('/consultations/:id/end', endConsultation);
 
-// Prescriptions & Verification (FR-5)
+// ========================================================
+// SECTION 7.5: PRESCRIPTIONS & DRUG SAFETY (FR-5)
+// ========================================================
 router.post('/prescriptions', createPrescription);
+router.get('/prescriptions/phone/:phone', getPrescriptionsByPhone);
 router.get('/prescriptions/:id', getPrescriptionById);
 router.get('/prescriptions/verify/:id', verifyPrescription);
 
-// Admin & Clinical Governance (FR-7)
+// ========================================================
+// SECTION 7.6: ASHA ASSISTED MODE & FOLLOW-UP (FR-6)
+// ========================================================
+router.get('/asha/households', getAshaHouseholds);
+router.post('/asha/vitals', recordPatientVitals);
+router.get('/asha/vitals/:phone', getPatientVitals);
+router.post('/asha/sync', syncOfflineVitals);
+
+router.post('/follow-up/check-in', submitFollowUpCheckIn);
+router.get('/follow-up/:prescriptionId', getFollowUpHistory);
+
+// ========================================================
+// SECTION 7.7: ADMIN & CLINICAL GOVERNANCE (FR-7)
+// ========================================================
 router.get('/admin/metrics', getClinicalMetrics);
 router.get('/admin/audit', getAuditLogs);
 router.get('/admin/doctors', getDoctors);
-
-// Facilities (FR-3)
-router.get('/facilities', getNearbyFacilities);
 
 export default router;

@@ -73,6 +73,90 @@ export const EmergencyScreen: React.FC<EmergencyScreenProps> = ({
             <span>{t.callEmergency112}</span>
           </button>
         </div>
+
+        {/* Dedicated Rural Hotlines Row (102 & 14416) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-3 border-t border-red-500/50 text-xs">
+          <a
+            href="tel:102"
+            className="p-2.5 rounded-xl bg-red-800/80 hover:bg-red-900 text-white flex items-center justify-between transition border border-red-400/40"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">🤰🏽</span>
+              <div>
+                <span className="font-bold block">102 - Janani Shishu Ambulance</span>
+                <span className="text-[10px] text-red-200">Maternal & Infant Emergency Transport</span>
+              </div>
+            </div>
+            <PhoneCall className="w-4 h-4 text-white" />
+          </a>
+
+          <a
+            href="tel:14416"
+            className="p-2.5 rounded-xl bg-red-800/80 hover:bg-red-900 text-white flex items-center justify-between transition border border-red-400/40"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">🧠</span>
+              <div>
+                <span className="font-bold block">14416 - Tele-MANAS Helpline</span>
+                <span className="text-[10px] text-red-200">24x7 Free Mental Health Crisis Support</span>
+              </div>
+            </div>
+            <PhoneCall className="w-4 h-4 text-white" />
+          </a>
+        </div>
+      </div>
+
+      {/* Clinician First-Aid Stabilization Protocols while waiting for ambulance (PRD FR-3.3) */}
+      <div className="bg-white border border-amber-300 rounded-2xl p-5 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-amber-900">
+            <span className="text-lg">🚑</span>
+            <h3 className="font-bold text-sm sm:text-base">
+              First-Aid Stabilization Steps (While Waiting for 108 Ambulance)
+            </h3>
+          </div>
+          <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded border border-amber-200">
+            PRD FR-3.3 First Aid
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
+          <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-slate-800">
+            <div className="font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+              <span>🫀 Chest Pain / Cardiac</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-slate-700">
+              Keep patient comfortably seated in a semi-reclining position. Loosen all tight clothing. Do not allow patient to walk or exert themselves.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-slate-800">
+            <div className="font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+              <span>🩸 Severe Bleeding</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-slate-700">
+              Apply continuous firm direct pressure with a clean cloth. Elevate injured limb above heart level. Keep patient lying down warmly.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-slate-800">
+            <div className="font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+              <span>🧠 Stroke / Seizures</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-slate-700">
+              Place in side recovery position. <strong>Do NOT give water or food orally</strong> (choking danger). Clear sharp surroundings; note exact onset time.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-slate-800">
+            <div className="font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+              <span>🐍 Snakebite / Toxic</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-slate-700">
+              Keep limb completely still below heart level with splint. <strong>Do NOT cut, suck, or tie tight tourniquet</strong>. Rush to PHC for anti-snake venom.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Detected Red Flags Summary */}

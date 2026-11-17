@@ -153,6 +153,18 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
+              onClick={() => onRoleChange('ASHA')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
+                currentRole === 'ASHA'
+                  ? 'bg-white text-rose-700 shadow-sm font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span className="text-xs">👩🏽‍⚕️</span>
+              <span className="hidden md:inline">{t.ashaRole || 'ASHA Worker'}</span>
+            </button>
+
+            <button
               onClick={() => onRoleChange('DOCTOR')}
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                 currentRole === 'DOCTOR'

@@ -89,7 +89,36 @@ RuralConnect/
 | **Prescriptions**| `GET` | `/api/prescriptions/verify/:id` | Pharmacist QR code verification portal |
 | **Admin** | `GET` | `/api/admin/metrics` | Clinical governance KPIs (emergency recall &ge;99%) |
 | **Admin** | `GET` | `/api/admin/audit` | Clinical review audit log |
-| **Facilities** | `GET` | `/api/facilities` | Nearby emergency centers (CHC, PHC, District Civil) |
+| **Facilities** | `GET` | `/api/facilities` | Nearby emergency centers & first-aid guidelines (FR-3) |
+| **Consultation**| `POST` | `/api/consultations/:id/reconnect` | 5-minute reconnect grace window (FR-4.3) |
+| **Consultation**| `POST` | `/api/consultations/:id/bandwidth` | Dynamic bandwidth mode switching (FR-4.2) |
+| **Consultation**| `POST` | `/api/consultations/:id/referral` | In-person clinical referral note builder (FR-4.5) |
+| **Prescriptions**| `GET` | `/api/prescriptions/phone/:phone` | Offline-cached prescriptions by phone (FR-5.5) |
+| **ASHA** | `GET` | `/api/asha/households` | Assigned village household cluster roster (FR-6.1) |
+| **ASHA** | `POST` | `/api/asha/vitals` | Doorstep clinical vitals logging (FR-6.2) |
+| **ASHA** | `GET` | `/api/asha/vitals/:phone` | Patient doorstep vitals history (FR-6.2) |
+| **ASHA** | `POST` | `/api/asha/sync` | Batch synchronization for offline vitals (FR-6.4) |
+| **Follow-up** | `POST` | `/api/follow-up/check-in` | Post-prescription recovery check-in (FR-6.5) |
+| **Follow-up** | `GET` | `/api/follow-up/:prescriptionId` | Prescription check-in audit history (FR-6.5) |
+
+---
+
+## 🧪 Automated Clinical Test Suite (100% PRD Verification)
+
+Run all clinical and functional tests across all sections:
+```bash
+npm test
+```
+
+This executes the complete automated test matrix:
+- **`backend/test/fr1.test.mjs`**: Section 7.1 Account, Registration, Multi-Profile & DPDP Consent (FR-1.1 - FR-1.9)
+- **`backend/test/fr2.test.mjs`**: Section 7.2 AI Symptom Chat, Red Flags & Zero AI Rx (FR-2.1 - FR-2.9)
+- **`backend/test/fr3.test.mjs`**: Section 7.3 Emergency Hotlines (108/112/102/14416), Facilities & First Aid (FR-3.1 - FR-3.3)
+- **`backend/test/fr4.test.mjs`**: Section 7.4 Virtual Waiting Room, 150kbps Low-Bandwidth Mode, 5-Min Reconnect Grace Window & In-Person Referral (FR-4.1 - FR-4.7)
+- **`backend/test/fr5.test.mjs`**: Section 7.5 Digital Prescription, QR Verification, Trilingual Schedule & Schedule X Drug Blocker (FR-5.1 - FR-5.7)
+- **`backend/test/fr6.test.mjs`**: Section 7.6 ASHA Doorstep Vitals (BP, SpO2, Temp, Sugar), Offline Sync & Interactive Follow-Up Check-In (FR-6.1 - FR-6.5)
+- **`backend/test/fr7.test.mjs`**: Section 7.7 Doctor NMC Verification, Clinical Governance KPIs (&ge;99% recall, &lt;5% discordance) & Audit Log (FR-7.1 - FR-7.4)
+- **`test/triageEngine.test.mjs`**: Heuristic clinical safety validation
 
 ---
 

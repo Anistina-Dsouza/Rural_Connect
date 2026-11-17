@@ -22,6 +22,8 @@ import { DoctorConsole } from './components/DoctorConsole';
 import { PrescriptionViewer } from './components/PrescriptionViewer';
 import { AdminDashboard } from './components/AdminDashboard';
 import { PrescriptionVerifier } from './components/PrescriptionVerifier';
+import { AshaAssistedMode } from './components/AshaAssistedMode';
+import { FollowUpCheckIn } from './components/FollowUpCheckIn';
 
 export const App: React.FC = () => {
   // App Global State (FR-1.2: Language selected at first launch, can change anytime)
@@ -70,7 +72,7 @@ export const App: React.FC = () => {
   };
 
   // Navigation State
-  type PatientScreen = 'CHAT' | 'EMERGENCY' | 'QUEUE' | 'VIDEO_CALL' | 'PRESCRIPTION' | 'VERIFY';
+  type PatientScreen = 'CHAT' | 'EMERGENCY' | 'QUEUE' | 'VIDEO_CALL' | 'PRESCRIPTION' | 'VERIFY' | 'FOLLOW_UP';
   const [patientScreen, setPatientScreen] = useState<PatientScreen>('CHAT');
   const [triageSummary, setTriageSummary] = useState<ClinicalTriageResult | null>(null);
   const [emergencyRedFlags, setEmergencyRedFlags] = useState<string[]>([]);
@@ -335,6 +337,14 @@ export const App: React.FC = () => {
                 >
                   4. e-Prescription
                 </button>
+                <button
+                  onClick={() => setPatientScreen('FOLLOW_UP')}
+                  className={`px-3 py-1.5 rounded-xl transition ${
+                    patientScreen === 'FOLLOW_UP' ? 'bg-emerald-600 text-white shadow-xs' : 'hover:bg-slate-200'
+                  }`}
+                >
+                  5. Follow-up Check-in
+                </button>
               </div>
 
               <div className="flex items-center gap-2">
@@ -413,7 +423,79 @@ export const App: React.FC = () => {
                 onBack={() => setPatientScreen('PRESCRIPTION')}
               />
             )}
+
+            {patientScreen === 'FOLLOW_UP' && (
+              <FollowUpCheckIn
+                currentLanguage={currentLanguage}
+                activeProfile={activeProfile}
+                prescription={currentPrescription}
+                onConsultDoctorReview={handleJoinQueue}
+                onEmergencyTriggered={handleEmergencyTriggered}
+                onClose={() => setPatientScreen('PRESCRIPTION')}
+              />
+            )}
           </div>
+        )}
+
+        {/* ASHA Assisted Mode (FR-6) */}
+        {currentRole === 'ASHA' && (
+          <AshaAssistedMode
+            currentLanguage={currentLanguage}
+            onSelectPatientForTriage={(profile, vitals) => {
+              setUserSession((prev) => ({
+                ...prev,
+                activeProfileId: profile.id
+              }));
+              setCurrentRole('PATIENT');
+              setPatientScreen('CHAT');
+            }}
+            onEnrollInQueueWithVitals={async (profile, vitals) => {
+              setUserSession((prev) => ({
+                ...prev,
+                activeProfileId: profile.id
+              }));
+              const customTriage: ClinicalTriageResult = {
+                triageLevel: vitals.systolicBp >= 140 || vitals.spO2 < 94 ? 'CONSULT_SOON' : 'SELF_CARE',
+                confidenceScore: 0.95,
+                matchedRedFlags: vitals.spO2 < 94 ? ['Low oxygen saturation (<94%)'] : [],
+                primaryComplaint: `Doorstep ASHA Vitals Log: BP ${vitals.systolicBp}/${vitals.diastolicBp}, SpO2 ${vitals.spO2}%, Pulse ${vitals.pulseRate} bpm, Temp ${vitals.temperatureF}°F`,
+                structuredDetails: {
+                  duration: 'Recent visit',
+                  severity: vitals.systolicBp >= 140 ? 'Moderate' : 'Mild',
+                  age: profile.age,
+                  gender: profile.gender,
+                  pregnancy: !!profile.isPregnant,
+                  chronicConditions: profile.chronicConditions || [],
+                  medications: profile.currentMedications || []
+                },
+                approvedInterimAdvice: ['Rest and observe hydration'],
+                doctorCaseSummary: {
+                  chiefComplaint: `ASHA Doorstep Check: BP ${vitals.systolicBp}/${vitals.diastolicBp}, SpO2 ${vitals.spO2}%, Pulse ${vitals.pulseRate}`,
+                  timeline: 'Assisted consultation by ASHA Worker Meena Ben',
+                  vitalsNotes: `BP: ${vitals.systolicBp}/${vitals.diastolicBp} mmHg | SpO2: ${vitals.spO2}% | Pulse: ${vitals.pulseRate} bpm | Temp: ${vitals.temperatureF}°F`,
+                  redFlagCheck: vitals.spO2 < 94 ? 'Hypoxia warning' : 'No red flag',
+                  recommendedAction: 'Physician teleconsultation'
+                },
+                disclaimer: 'Logged by certified ASHA Community Health Worker'
+              };
+              setTriageSummary(customTriage);
+              try {
+                const res = await ApiService.joinQueue(
+                  vitals.patientPhone,
+                  profile,
+                  customTriage,
+                  bandwidthMode
+                );
+                if (res && res.consultation) {
+                  setCurrentConsultationId(res.consultation.id);
+                }
+              } catch (err) {
+                console.warn('ASHA queue join note:', err);
+              }
+              setCurrentRole('PATIENT');
+              setPatientScreen('QUEUE');
+            }}
+          />
         )}
 
         {/* Doctor Console */}

@@ -1,4 +1,4 @@
-import { store } from '../src/store.js';
+import { store } from '../dist/store.js';
 
 console.log('==================================================');
 console.log('PRD SECTION 7.1: ACCOUNT AND CONSENT VERIFICATION');

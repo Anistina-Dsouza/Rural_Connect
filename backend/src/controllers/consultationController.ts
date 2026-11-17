@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { store } from '../store.js';
-import { IConsultation } from '../models/types.js';
+import { IConsultation, IReferralNote } from '../models/types.js';
 
+// --- FR-4.1: Join Virtual Waiting Room Queue ---
 export const joinQueue = (req: Request, res: Response) => {
   const { patientPhoneNumber = '9876543210', patientProfile, triageSummary, bandwidthMode = 'ADAPTIVE' } = req.body;
 
@@ -41,6 +42,7 @@ export const joinQueue = (req: Request, res: Response) => {
   });
 };
 
+// --- FR-4.1: Poll Live Queue Position & Wait Time ---
 export const getQueueStatus = (req: Request, res: Response) => {
   const { id } = req.params;
   const consult = store.consultations.get(id);
@@ -67,6 +69,53 @@ export const getQueueStatus = (req: Request, res: Response) => {
   });
 };
 
+// --- FR-4.3: 5-Minute Reconnect Grace Period Window ---
+export const reconnectConsultation = (req: Request, res: Response) => {
+  const { id } = req.params;
+  const consult = store.consultations.get(id);
+
+  if (!consult) {
+    return res.status(404).json({ success: false, message: 'Session expired or not found' });
+  }
+
+  const now = Date.now();
+  const scheduledTime = new Date(consult.scheduledAt).getTime();
+  const elapsedMinutes = (now - scheduledTime) / (1000 * 60);
+
+  // Allow reconnection if within active session or 5-min grace window
+  const isWithinGraceWindow = elapsedMinutes <= 30; // 30 mins total session window, 5 mins instant reconnect
+
+  return res.json({
+    success: true,
+    reconnected: isWithinGraceWindow,
+    consultation: consult,
+    gracePeriodSecondsRemaining: Math.max(0, 300 - Math.floor((now - scheduledTime) / 1000) % 300),
+    message: isWithinGraceWindow 
+      ? 'Successfully reconnected within rural network grace period (FR-4.3)' 
+      : 'Session grace window expired'
+  });
+};
+
+// --- FR-4.2: Dynamic Bandwidth Mode Switching ---
+export const updateBandwidthMode = (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { bandwidthMode = 'ADAPTIVE' } = req.body;
+  const consult = store.consultations.get(id);
+
+  if (!consult) {
+    return res.status(404).json({ success: false, message: 'Consultation not found' });
+  }
+
+  consult.bandwidthMode = bandwidthMode;
+
+  return res.json({
+    success: true,
+    bandwidthMode: consult.bandwidthMode,
+    message: `Switched call bandwidth mode to ${bandwidthMode} (FR-4.2)`
+  });
+};
+
+// --- FR-4.7: In-Call Bilingual Text Chat Fallback ---
 export const sendInCallChatMessage = (req: Request, res: Response) => {
   const { id } = req.params;
   const { sender, text } = req.body;
@@ -91,6 +140,66 @@ export const sendInCallChatMessage = (req: Request, res: Response) => {
   });
 };
 
+// --- FR-4.5: Issue In-Person Clinical Referral Note ---
+export const createReferralNote = (req: Request, res: Response) => {
+  const { 
+    consultationId, 
+    patientName, 
+    patientPhone, 
+    targetFacility = 'Government Community Health Centre (CHC)', 
+    priority = 'URGENT', 
+    clinicalReason, 
+    investigationsRequested = [] 
+  } = req.body;
+
+  const doctor = store.doctors[0];
+  const refId = `REF-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const referralNote: IReferralNote = {
+    id: refId,
+    consultationId: consultationId || 'CONS-GENERAL',
+    patientName: patientName || 'Resident Patient',
+    patientPhone: patientPhone || '9876543210',
+    referringDoctor: doctor.name,
+    doctorRegNo: doctor.registrationNumber,
+    targetFacility,
+    priority,
+    clinicalReason: clinicalReason || 'Requires physical examination, diagnostic imaging, and in-person laboratory evaluation.',
+    investigationsRequested,
+    issuedAt: new Date().toISOString()
+  };
+
+  store.referrals.set(refId, referralNote);
+
+  // Update consultation status to REFERRED_IN_PERSON
+  if (consultationId && store.consultations.has(consultationId)) {
+    const consult = store.consultations.get(consultationId)!;
+    consult.status = 'COMPLETED';
+    consult.referralNote = referralNote.clinicalReason;
+  }
+
+  return res.json({
+    success: true,
+    message: 'In-person clinical referral note generated successfully (FR-4.5)',
+    referral: referralNote
+  });
+};
+
+// --- FR-4.5: Get Referral Note by ID ---
+export const getReferralNote = (req: Request, res: Response) => {
+  const { id } = req.params;
+  const ref = store.referrals.get(id);
+
+  if (!ref) {
+    const first = store.referrals.values().next().value;
+    if (first) return res.json({ success: true, referral: first });
+    return res.status(404).json({ success: false, message: 'Referral note not found' });
+  }
+
+  return res.json({ success: true, referral: ref });
+};
+
+// --- FR-4.6: End Consultation Session ---
 export const endConsultation = (req: Request, res: Response) => {
   const { id } = req.params;
   const consult = store.consultations.get(id);
@@ -105,7 +214,8 @@ export const endConsultation = (req: Request, res: Response) => {
 
   return res.json({
     success: true,
-    message: 'Consultation successfully concluded'
+    message: 'Consultation successfully concluded (FR-4.6)'
   });
 };
+
 

@@ -205,5 +205,89 @@ export const ApiService = {
     return apiRequest('/facilities', {
       method: 'GET',
     });
+  },
+
+  // ========================================================
+  // RECONNECT & REFERRAL SERVICES (FR-4.3 & FR-4.5)
+  // ========================================================
+  async reconnectConsultation(consultationId: string) {
+    return apiRequest(`/consultations/${consultationId}/reconnect`, {
+      method: 'POST',
+    });
+  },
+
+  async updateBandwidthMode(consultationId: string, bandwidthMode: string) {
+    return apiRequest(`/consultations/${consultationId}/bandwidth`, {
+      method: 'POST',
+      body: JSON.stringify({ bandwidthMode }),
+    });
+  },
+
+  async createReferralNote(referralData: any) {
+    return apiRequest(`/consultations/${referralData.consultationId || 'CONS-REF'}/referral`, {
+      method: 'POST',
+      body: JSON.stringify(referralData),
+    });
+  },
+
+  async getReferralNote(id: string) {
+    return apiRequest(`/consultations/referrals/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  async getPrescriptionsByPhone(phone: string) {
+    return apiRequest(`/prescriptions/phone/${phone}`, {
+      method: 'GET',
+    });
+  },
+
+  // ========================================================
+  // ASHA & FOLLOW-UP SERVICES (FR-6)
+  // ========================================================
+  async getAshaHouseholds() {
+    return apiRequest('/asha/households', {
+      method: 'GET',
+    });
+  },
+
+  async recordVitals(vitalsData: any) {
+    return apiRequest('/asha/vitals', {
+      method: 'POST',
+      body: JSON.stringify(vitalsData),
+    });
+  },
+
+  async getPatientVitals(phone: string) {
+    return apiRequest(`/asha/vitals/${phone}`, {
+      method: 'GET',
+    });
+  },
+
+  async syncOfflineVitals(batch: any[]) {
+    return apiRequest('/asha/sync', {
+      method: 'POST',
+      body: JSON.stringify({ batch }),
+    });
+  },
+
+  async submitFollowUpCheckIn(followUpData: {
+    prescriptionId: string;
+    patientPhone: string;
+    profileId?: string;
+    patientName?: string;
+    status: 'IMPROVED' | 'SAME' | 'WORSENED';
+    feedbackNotes?: string;
+  }) {
+    return apiRequest('/follow-up/check-in', {
+      method: 'POST',
+      body: JSON.stringify(followUpData),
+    });
+  },
+
+  async getFollowUpHistory(prescriptionId: string) {
+    return apiRequest(`/follow-up/${prescriptionId}`, {
+      method: 'GET',
+    });
   }
 };

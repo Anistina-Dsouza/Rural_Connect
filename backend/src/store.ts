@@ -5,7 +5,10 @@ import {
   IConsultation, 
   IPrescription, 
   IAuditLog, 
-  IFacility 
+  IFacility,
+  IVitalsRecord,
+  IFollowUpCheckIn,
+  IReferralNote
 } from './models/types.js';
 
 class DataStore {
@@ -17,6 +20,9 @@ class DataStore {
   public auditLogs: IAuditLog[] = [];
   public facilities: IFacility[] = [];
   public activeQueue: string[] = [];
+  public vitals: Map<string, IVitalsRecord[]> = new Map(); // Keyed by patient phone
+  public followUps: Map<string, IFollowUpCheckIn[]> = new Map(); // Keyed by prescriptionId
+  public referrals: Map<string, IReferralNote> = new Map(); // Keyed by referral ID
 
   constructor() {
     this.seedInitialData();
@@ -277,6 +283,72 @@ class DataStore {
         ambulanceTime: '30-40 mins'
       }
     ];
+
+    // 9. Initial Seed ASHA Vitals Records (FR-6)
+    this.vitals.set(defaultPatientPhone, [
+      {
+        id: 'vit-101',
+        patientPhone: defaultPatientPhone,
+        profileId: 'prof-1',
+        patientName: 'सुनीता देवी (Sunita Devi)',
+        systolicBp: 118,
+        diastolicBp: 78,
+        spO2: 98,
+        pulseRate: 74,
+        temperatureF: 98.6,
+        bloodSugarMgDl: 104,
+        recordedByAshaId: 'ASHA-GUJ-4091',
+        recordedByAshaName: 'मीना बेन (Meena Ben)',
+        notes: 'Routine doorstep wellness check. All vitals normal.',
+        timestamp: new Date(Date.now() - 86400000 * 2).toISOString()
+      },
+      {
+        id: 'vit-102',
+        patientPhone: defaultPatientPhone,
+        profileId: 'prof-2',
+        patientName: 'रमेश पटेल (Ramesh Patel)',
+        systolicBp: 138,
+        diastolicBp: 86,
+        spO2: 96,
+        pulseRate: 78,
+        temperatureF: 98.4,
+        bloodSugarMgDl: 142,
+        recordedByAshaId: 'ASHA-GUJ-4091',
+        recordedByAshaName: 'मीना बेन (Meena Ben)',
+        notes: 'Elder chronic monitoring. Blood pressure slightly elevated, taking Amlodipine regularly.',
+        timestamp: new Date(Date.now() - 86400000).toISOString()
+      }
+    ]);
+
+    // 10. Initial Seed Follow-up Check-in (FR-6)
+    this.followUps.set(seedRxId, [
+      {
+        id: 'flw-001',
+        prescriptionId: seedRxId,
+        patientPhone: defaultPatientPhone,
+        profileId: 'prof-1',
+        patientName: 'सुनीता देवी (Sunita Devi)',
+        status: 'IMPROVED',
+        feedbackNotes: 'Fever subsided after 2 days of Paracetamol. Throat irritation much better.',
+        escalatedToDoctor: false,
+        timestamp: new Date().toISOString()
+      }
+    ]);
+
+    // 11. Initial Seed Clinical In-Person Referral Note (FR-4.5)
+    this.referrals.set('REF-7891', {
+      id: 'REF-7891',
+      consultationId: 'CONS-90182',
+      patientName: 'रमेश पटेल (Ramesh Patel)',
+      patientPhone: defaultPatientPhone,
+      referringDoctor: this.doctors[0].name,
+      doctorRegNo: this.doctors[0].registrationNumber,
+      targetFacility: 'Government Community Health Centre (CHC)',
+      priority: 'URGENT',
+      clinicalReason: 'Persistent elevated BP (160/100) unresponsive to routine dosage. Requires in-person ECG and serum creatinine evaluation.',
+      investigationsRequested: ['12-Lead ECG', 'Serum Creatinine', 'Fasting Blood Sugar'],
+      issuedAt: new Date().toISOString()
+    });
   }
 }
 
