@@ -140,6 +140,10 @@ export const syncOfflineVitals = (req: Request, res: Response) => {
     }
   }
 
+  if (syncedCount > 0) {
+    store.scheduleDiskSave();
+  }
+
   return res.json({
     success: true,
     message: `Successfully synchronized ${syncedCount} offline vitals records (FR-6.4)`,
