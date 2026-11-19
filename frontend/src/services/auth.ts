@@ -1,12 +1,44 @@
+const TAB_AUTH_TOKEN_KEY = 'ruralcare_tab_auth_token';
+const ROLE_AUTH_TOKEN_PREFIX = 'ruralcare_auth_token_';
+
 export const setAuthToken = (token: string) => {
-  localStorage.setItem('authToken', token);
+  const role = parseJwt(token)?.role;
+  sessionStorage.setItem(TAB_AUTH_TOKEN_KEY, token);
+
+  if (typeof role === 'string') {
+    sessionStorage.setItem('ruralcare_session_role', role);
+    localStorage.setItem(`${ROLE_AUTH_TOKEN_PREFIX}${role}`, token);
+  }
 };
 
 export const getAuthToken = (): string | null => {
-  return localStorage.getItem('authToken');
+  const tabToken = sessionStorage.getItem(TAB_AUTH_TOKEN_KEY);
+  if (tabToken) return tabToken;
+
+  const sessionRole = sessionStorage.getItem('ruralcare_session_role');
+  const storedRole = sessionRole || localStorage.getItem('ruralcare_session_role');
+  const roleToken = storedRole
+    ? localStorage.getItem(`${ROLE_AUTH_TOKEN_PREFIX}${storedRole}`)
+    : null;
+  const legacyToken = localStorage.getItem('authToken');
+  const token = roleToken || legacyToken;
+  if (!token) return null;
+
+  const tokenRole = parseJwt(token)?.role;
+  if (storedRole && tokenRole && storedRole !== tokenRole) return null;
+
+  sessionStorage.setItem(TAB_AUTH_TOKEN_KEY, token);
+  if (typeof tokenRole === 'string') {
+    sessionStorage.setItem('ruralcare_session_role', tokenRole);
+  }
+  return token;
 };
 
 export const clearAuth = () => {
+  const role = sessionStorage.getItem('ruralcare_session_role');
+  sessionStorage.removeItem(TAB_AUTH_TOKEN_KEY);
+  sessionStorage.removeItem('ruralcare_session_role');
+  if (role) localStorage.removeItem(`${ROLE_AUTH_TOKEN_PREFIX}${role}`);
   localStorage.removeItem('authToken');
   localStorage.removeItem('ruralcare_session_phone');
   localStorage.removeItem('ruralcare_session_role');
@@ -44,4 +76,3 @@ export const setDoctorSession = (name: string, regNo: string) => {
   localStorage.setItem('ruralcare_doctor_name', name);
   localStorage.setItem('ruralcare_doctor_regno', regNo);
 };
-

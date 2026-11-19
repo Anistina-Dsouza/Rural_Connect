@@ -12,7 +12,7 @@
       "phoneNumber": "1234567890",
       "preferredLanguage": "hi",
       "role": "PATIENT",
-      "updatedAt": "2026-11-18T09:10:43.773Z"
+      "updatedAt": "2026-11-19T09:23:48.662Z"
     },
     "9876543210": {
       "_id": "6afc4b98cf418befa6414df6",
@@ -63,7 +63,7 @@
       "phoneNumber": "9822334455",
       "preferredLanguage": "en",
       "role": "DOCTOR",
-      "updatedAt": "2026-11-18T09:11:04.176Z"
+      "updatedAt": "2026-11-19T09:24:09.681Z"
     },
     "NMC/MCI-2018-84729": {
       "id": "usr-doc-1",
@@ -106,7 +106,7 @@
       "phoneNumber": "9822334455",
       "preferredLanguage": "en",
       "role": "DOCTOR",
-      "updatedAt": "2026-11-18T09:11:04.176Z"
+      "updatedAt": "2026-11-19T09:24:09.681Z"
     },
     "9811223344": {
       "_id": "6afc4b98cf418befa6414df8",
@@ -200,7 +200,7 @@
       "phoneNumber": "9822334455",
       "preferredLanguage": "en",
       "role": "DOCTOR",
-      "updatedAt": "2026-11-18T09:11:04.176Z"
+      "updatedAt": "2026-11-19T09:24:09.681Z"
     },
     "9800112233": {
       "_id": "6afc4b98cf418befa6414df9",
@@ -228,7 +228,7 @@
       "phoneNumber": "1234567890",
       "preferredLanguage": "hi",
       "role": "PATIENT",
-      "updatedAt": "2026-11-18T09:10:43.773Z"
+      "updatedAt": "2026-11-19T09:23:48.662Z"
     }
   },
   "profiles": {
@@ -438,7 +438,7 @@
         "specialization": "General Physician & Telehealth Specialist",
         "updatedAt": "2026-11-18T08:52:18.772Z"
       },
-      "status": "QUEUED",
+      "status": "COMPLETED",
       "triageSummary": null,
       "queuePosition": 1,
       "estimatedWaitMinutes": 3,
@@ -453,8 +453,70 @@
         }
       ],
       "createdAt": "2026-11-19T09:23:54.682Z",
-      "updatedAt": "2026-11-19T09:23:54.682Z",
-      "__v": 0
+      "updatedAt": "2026-11-19T09:25:13.022Z",
+      "__v": 0,
+      "startedAt": "2026-11-19T09:24:13.041Z",
+      "endedAt": "2026-11-19T09:25:13.022Z",
+      "prescriptionId": "RC-2026-53033"
+    },
+    "CONS-187469": {
+      "_id": "6afec3e3fd9e45c1a3cf0326",
+      "id": "CONS-187469",
+      "patientPhoneNumber": "1234567890",
+      "patientProfile": {
+        "id": "prof-1",
+        "userId": "1234567890",
+        "name": "सुनीता देवी (Sunita Devi)",
+        "relation": "Self",
+        "age": 34,
+        "gender": "Female",
+        "isPregnant": false,
+        "chronicConditions": [
+          "None"
+        ],
+        "currentMedications": [],
+        "avatar": "👩🏽"
+      },
+      "doctor": {
+        "_id": "6afd6743b1f4e1819749f126",
+        "id": "doc-1",
+        "__v": 0,
+        "avatar": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80",
+        "councilName": "Gujarat Medical Council / NMC India",
+        "createdAt": "2026-11-18T08:52:18.772Z",
+        "experienceYears": 14,
+        "isAvailable": true,
+        "languages": [
+          "Hindi",
+          "Gujarati",
+          "English"
+        ],
+        "name": "रमेश पटेल (Dr. Ramesh Patel)",
+        "rating": 4.9,
+        "registrationNumber": "NMC/MCI-2018-84729",
+        "specialization": "General Physician & Telehealth Specialist",
+        "updatedAt": "2026-11-18T08:52:18.772Z"
+      },
+      "status": "COMPLETED",
+      "triageSummary": null,
+      "queuePosition": 1,
+      "estimatedWaitMinutes": 3,
+      "scheduledAt": "2026-11-19T09:39:47.469Z",
+      "bandwidthMode": "ADAPTIVE",
+      "chatMessages": [
+        {
+          "sender": "Dr. रमेश पटेल (Dr. Ramesh Patel)",
+          "text": "Namaste! I am reviewing your AI triage summary. How are you feeling right now?",
+          "time": "03:09 pm",
+          "_id": "6afec3e3fd9e45c1a3cf0327"
+        }
+      ],
+      "createdAt": "2026-11-19T09:39:47.549Z",
+      "updatedAt": "2026-11-19T09:41:32.401Z",
+      "__v": 0,
+      "startedAt": "2026-11-19T09:39:53.282Z",
+      "endedAt": "2026-11-19T09:41:32.401Z",
+      "prescriptionId": "RC-2026-36865"
     }
   },
   "prescriptions": {
@@ -741,9 +803,117 @@
       ],
       "updatedAt": "2026-11-18T08:55:24.767Z",
       "verificationQrData": "https://ruralcare.gov.in/verify/RC-2026-12313"
+    },
+    "RC-2026-53033": {
+      "_id": "6afec072d0b77e3d545e8c8a",
+      "id": "RC-2026-53033",
+      "consultationId": "CONS-234254",
+      "patientName": "सुनीता देवी (Sunita Devi)",
+      "patientAge": 34,
+      "patientGender": "Female",
+      "patientPhone": "1234567890",
+      "doctorName": "रमेश पटेल (Dr. Ramesh Patel)",
+      "doctorRegNo": "NMC/MCI-2018-84729",
+      "doctorCouncil": "Gujarat Medical Council / NMC India",
+      "doctorSignatureDate": "19 Nov 2026",
+      "diagnosis": "Acute Clinical Evaluation",
+      "symptoms": [
+        "General Clinical Evaluation"
+      ],
+      "medicines": [
+        {
+          "id": "med_1795080302585",
+          "name": "ORS Sachet (1L)",
+          "dosage": "200ml post stool",
+          "frequency": "3 Days",
+          "timing": "After Food",
+          "durationDays": 3,
+          "instructionEn": "Take strictly as per medical officer directions.",
+          "instructionHi": "Take strictly as per medical officer directions.",
+          "instructionGu": "Take strictly as per medical officer directions.",
+          "_id": "6afec072d0b77e3d545e8c8b"
+        },
+        {
+          "id": "med_1795080304068",
+          "name": "Domperidone Drops",
+          "dosage": "3 drops SOS",
+          "frequency": "3 Days",
+          "timing": "After Food",
+          "durationDays": 3,
+          "instructionEn": "Take strictly as per medical officer directions.",
+          "instructionHi": "Take strictly as per medical officer directions.",
+          "instructionGu": "Take strictly as per medical officer directions.",
+          "_id": "6afec072d0b77e3d545e8c8c"
+        }
+      ],
+      "generalAdvice": "स्वच्छ उबला हुआ पानी पिएं, पर्याप्त आराम करें और समय पर दवाएं लें।",
+      "followUpDays": 3,
+      "verificationQrData": "https://ruralcare.gov.in/verify/RC-2026-53033",
+      "isOfflineAvailable": true,
+      "createdAt": "2026-11-19T09:25:06.785Z",
+      "updatedAt": "2026-11-19T09:25:06.785Z",
+      "__v": 0
+    },
+    "RC-2026-36865": {
+      "id": "RC-2026-36865",
+      "consultationId": "CONS-187469",
+      "patientName": "सुनीता देवी (Sunita Devi)",
+      "patientAge": 34,
+      "patientGender": "Female",
+      "patientPhone": "1234567890",
+      "doctorName": "रमेश पटेल (Dr. Ramesh Patel)",
+      "doctorRegNo": "NMC/MCI-2018-84729",
+      "doctorCouncil": "Gujarat Medical Council / NMC India",
+      "doctorSignatureDate": "19 Nov 2026",
+      "diagnosis": "Acute Clinical Evaluation",
+      "symptoms": [
+        "General Clinical Evaluation"
+      ],
+      "medicines": [
+        {
+          "id": "med_1795081277105",
+          "name": "Paracetamol Syr 250mg",
+          "dosage": "5ml SOS",
+          "frequency": "3 Days",
+          "timing": "After Food",
+          "durationDays": 3,
+          "instructionEn": "Take strictly as per medical officer directions.",
+          "instructionHi": "Take strictly as per medical officer directions.",
+          "instructionGu": "Take strictly as per medical officer directions."
+        },
+        {
+          "id": "med_1795081278104",
+          "name": "Zinc Syr 20mg",
+          "dosage": "5ml OD x 14d",
+          "frequency": "3 Days",
+          "timing": "After Food",
+          "durationDays": 3,
+          "instructionEn": "Take strictly as per medical officer directions.",
+          "instructionHi": "Take strictly as per medical officer directions.",
+          "instructionGu": "Take strictly as per medical officer directions."
+        }
+      ],
+      "generalAdvice": "स्वच्छ उबला हुआ पानी पिएं, पर्याप्त आराम करें और समय पर दवाएं लें।",
+      "followUpDays": 3,
+      "verificationQrData": "https://ruralcare.gov.in/verify/RC-2026-36865",
+      "isOfflineAvailable": true,
+      "createdAt": "2026-11-19T09:41:21.597Z"
     }
   },
   "auditLogs": [
+    {
+      "id": "AUD-7614",
+      "timestamp": "2026-11-19 09:43",
+      "patientPhone": "9876543210",
+      "profileName": "सुनीता देवी (Sunita Devi)",
+      "initialComplaint": "Cough & Sore Throat",
+      "aiTriageLevel": "CONSULT_SOON",
+      "doctorFinalDisposition": "CONSULT_SOON",
+      "isConcordant": true,
+      "redFlagsDetected": [],
+      "reviewedByClinician": false,
+      "clinicalNotes": "Symptoms duration > 3 days, moderate/severe discomfort, or existing chronic ailment"
+    },
     {
       "_id": "6afd6745b1f4e1819749f134",
       "id": "AUD-891",
@@ -796,9 +966,7 @@
       "updatedAt": "2026-11-18T08:52:21.742Z"
     }
   ],
-  "activeQueue": [
-    "CONS-234254"
-  ],
+  "activeQueue": [],
   "vitals": {
     "9876543210": [
       {
@@ -864,5 +1032,5 @@
       "updatedAt": "2026-11-18T08:52:20.814Z"
     }
   },
-  "lastSaved": "2026-11-19T09:24:10.193Z"
+  "lastSaved": "2026-11-19T09:43:08.127Z"
 }

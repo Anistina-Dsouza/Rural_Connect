@@ -56,8 +56,42 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   ]);
   const [inCallInput, setInCallInput] = useState('');
   const [showSummaryDrawer, setShowSummaryDrawer] = useState(false);
+  const [consultationStatus, setConsultationStatus] = useState('CHECKING');
+  const [consultationStatusError, setConsultationStatusError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const refreshConsultationStatus = async () => {
+      try {
+        const response = await ApiService.getQueueStatus(consultationId);
+        if (!response.success || !response.consultation) {
+          throw new Error('Unable to check whether the doctor has started the consultation.');
+        }
+        if (active) {
+          setConsultationStatus(response.consultation.status);
+          setConsultationStatusError(null);
+        }
+      } catch (error) {
+        if (active) {
+          console.error('[Consultation] Failed to refresh call status:', error);
+          setConsultationStatusError(
+            error instanceof Error ? error.message : 'Unable to check consultation status.'
+          );
+        }
+      }
+    };
+
+    void refreshConsultationStatus();
+    const interval = window.setInterval(refreshConsultationStatus, 3000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [consultationId]);
+
   const agora = useAgoraCall(
-    consultationId,
+    consultationStatus === 'IN_CALL' ? consultationId : '',
     initialBandwidthMode !== 'AUDIO_ONLY'
   );
 
@@ -150,12 +184,27 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             <div className="flex items-center gap-2">
               <span className="font-bold text-xs tracking-wide">Agora Video Consultation</span>
               <span className="bg-emerald-500/30 text-emerald-200 text-[10px] font-mono px-1.5 py-0.5 rounded border border-emerald-400/30">
-                {agora.status === 'CONNECTED' ? 'Connected' : agora.status === 'CONNECTING' ? 'Connecting…' : agora.status === 'ERROR' ? 'Connection failed' : 'Not connected'}
+                {consultationStatus === 'CHECKING'
+                  ? 'Checking consultation…'
+                  : consultationStatus === 'QUEUED'
+                  ? 'Waiting for doctor'
+                  : agora.status === 'CONNECTED'
+                  ? 'Connected'
+                  : agora.status === 'CONNECTING'
+                  ? 'Connecting…'
+                  : agora.status === 'ERROR'
+                  ? 'Connection failed'
+                  : consultationStatus === 'IN_CALL'
+                  ? 'Ready to connect'
+                  : 'Consultation ended'}
               </span>
             </div>
           </div>
         </div>
         {agora.error && <p role="alert" className="w-full text-xs text-red-200">{agora.error}</p>}
+        {consultationStatusError && (
+          <p role="alert" className="w-full text-xs text-red-200">{consultationStatusError}</p>
+        )}
       </div>
 
       {/* ── Main Video Consultation Stage ─────────────────────────────── */}
@@ -170,7 +219,13 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
               >
                 <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-300">
                   <img src={assignedDoctor.avatar} alt="" className="w-24 h-24 rounded-full object-cover opacity-70" />
-                  <span className="text-sm">Waiting for Dr. {assignedDoctor.name} to join…</span>
+                  <span className="text-sm">
+                    {consultationStatus === 'QUEUED'
+                      ? 'The video call will start when the doctor admits you.'
+                      : consultationStatus === 'CHECKING'
+                      ? 'Checking your place in the consultation…'
+                      : `Waiting for Dr. ${assignedDoctor.name} to join…`}
+                  </span>
                 </div>
               </AgoraVideoPlayer>
               <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-white text-xs font-semibold flex items-center gap-1.5">
@@ -196,6 +251,11 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             {agora.isVideoEnabled ? (
               <div className="relative w-full h-full bg-slate-900 flex items-center justify-center">
                 <AgoraVideoPlayer track={agora.localVideoTrack} className="w-full h-full object-cover" />
+                {!agora.localVideoTrack && (
+                  <span className="text-[10px] text-slate-400">
+                    {consultationStatus === 'IN_CALL' ? 'Connecting camera…' : 'Camera starts when the call begins'}
+                  </span>
+                )}
                 <div className="absolute bottom-1 left-1 right-1 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] text-slate-200 font-semibold truncate">
                   You ({activeProfile.name})
                 </div>

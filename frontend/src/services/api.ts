@@ -15,7 +15,14 @@ async function apiRequest<T = any>(endpoint: string, options?: RequestInit, fall
       ...options,
     });
     if (!res.ok) {
-      throw new Error(`API Error: ${res.statusText}`);
+      let message: string | undefined;
+      try {
+        const errorData = await res.json();
+        if (typeof errorData.message === 'string') message = errorData.message;
+      } catch {
+        // Use the HTTP status when the server does not return a JSON error body.
+      }
+      throw new Error(message || `API Error: ${res.status} ${res.statusText}`);
     }
     const data = await res.json();
     return data;
