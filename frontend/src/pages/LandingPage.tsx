@@ -1,8 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ApiService } from '../services/api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [metrics, setMetrics] = useState({
+    totalConsultations: 1240,
+    medianWaitMinutes: '4.8',
+    activeDoctorsOnline: 2
+  });
+  const [topDoctor, setTopDoctor] = useState({
+    name: 'Dr. Anita Patel (MBBS, MD)',
+    specialty: 'Internal Medicine Specialist'
+  });
+
+  useEffect(() => {
+    ApiService.getClinicalMetrics()
+      .then(res => {
+        if (res && res.metrics) {
+          setMetrics(prev => ({
+            ...prev,
+            totalConsultations: res.metrics.totalConsultations || prev.totalConsultations,
+            medianWaitMinutes: res.metrics.medianWaitMinutes || prev.medianWaitMinutes,
+            activeDoctorsOnline: res.metrics.activeDoctorsOnline || prev.activeDoctorsOnline
+          }));
+        }
+      })
+      .catch(() => {});
+
+    ApiService.getDoctors()
+      .then(res => {
+        if (res && res.doctors && res.doctors.length > 0) {
+          const doc = res.doctors[0];
+          setTopDoctor({
+            name: `${doc.name.startsWith('Dr.') ? '' : 'Dr. '}${doc.name}`,
+            specialty: doc.specialization || 'Telemedicine Specialist'
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const playDemoAudio = () => {
     if ('speechSynthesis' in window) {
@@ -191,16 +228,16 @@ export default function LandingPage() {
               {/* Floating Doctor Badge */}
               <div className="bg-surface-container-lowest p-4 rounded-xl shadow-lg -mt-8 mx-4 z-10 flex items-center justify-between gap-4 border border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                     <span className="material-symbols-outlined text-xl">stethoscope</span>
                   </div>
                   <div>
-                    <span className="font-headline font-bold text-xs text-on-surface block">Dr. Anita Patel (MBBS, MD)</span>
-                    <span className="text-[11px] text-on-surface-variant block">Internal Medicine Specialist</span>
+                    <span className="font-headline font-bold text-xs text-on-surface block">{topDoctor.name}</span>
+                    <span className="text-[11px] text-on-surface-variant block">{topDoctor.specialty}</span>
                   </div>
                 </div>
                 <div className="bg-primary text-on-primary text-[10px] font-bold px-2 py-1 rounded">
-                  Connected Online
+                  {metrics.activeDoctorsOnline} Online
                 </div>
               </div>
             </div>
@@ -209,12 +246,16 @@ export default function LandingPage() {
           {/* Quick Statistics Ribbon */}
           <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 bg-surface-container-lowest p-6 rounded-2xl shadow-md border border-slate-100">
             <div className="flex flex-col">
-              <span className="font-headline font-bold text-2xl sm:text-3xl text-primary tracking-tight">20,400+</span>
+              <span className="font-headline font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+                {metrics.totalConsultations.toLocaleString()}+
+              </span>
               <span className="text-xs text-on-surface-variant font-semibold">Consultations Completed</span>
               <span className="text-[11px] text-secondary font-medium">Madhya Pradesh &amp; Gujarat</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-headline font-bold text-2xl sm:text-3xl text-primary tracking-tight">&lt; 8 Mins</span>
+              <span className="font-headline font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+                &lt; {metrics.medianWaitMinutes} Mins
+              </span>
               <span className="text-xs text-on-surface-variant font-semibold">Avg Doctor Connect Time</span>
               <span className="text-[11px] text-secondary font-medium">Reduced from 180 min PHC wait</span>
             </div>

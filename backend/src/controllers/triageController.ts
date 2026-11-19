@@ -262,19 +262,21 @@ export const assessTriage = (req: Request, res: Response) => {
 
   // 6. Record in Audit Log (Section 8 Governance)
   const auditId = `AUD-${Date.now().toString().slice(-4)}`;
-  store.auditLogs.unshift({
+  const auditEntry = {
     id: auditId,
     timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
     patientPhone: phoneNumber,
     profileName: profile?.name || 'Resident',
     initialComplaint: complaint,
     aiTriageLevel: triageLevel,
-    doctorFinalDisposition: triageLevel === 'EMERGENCY' ? 'EMERGENCY' : 'CONSULT_SOON',
+    doctorFinalDisposition: (triageLevel === 'EMERGENCY' ? 'EMERGENCY' : 'CONSULT_SOON') as TriageLevel,
     isConcordant: true,
     redFlagsDetected: redFlagCheck.flags,
     reviewedByClinician: redFlagCheck.matched || isAmbiguous,
     clinicalNotes: defaultReason
-  });
+  };
+  store.auditLogs.unshift(auditEntry);
+  store.saveItem('audit', auditEntry);
 
   return res.json({
     success: true,

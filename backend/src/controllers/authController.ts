@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { store } from '../store.js';
 import { IUser, IFamilyProfile, Language } from '../models/types.js';
+import { UserModel, FamilyProfileModel } from '../models/schemas.js';
 import { generateToken, AuthRequest } from '../middleware/authMiddleware.js';
 
 // In-memory active OTP store with timestamp for 30s call fallback
@@ -99,22 +100,25 @@ export const verifyOtp = (req: Request, res: Response) => {
     store.users.set(user.id, user);
 
     // Initial default profile (FR-1.4)
-    store.profiles.set(cleanPhone, [
-      {
-        id: 'prof-1',
-        userId: cleanPhone,
-        name: user.name,
-        relation: 'Self',
-        age: 34,
-        gender: 'Female',
-        isPregnant: false,
-        chronicConditions: ['None'],
-        currentMedications: [],
-        avatar: '👩🏽'
-      }
-    ]);
+    const defaultProfile: IFamilyProfile = {
+      id: 'prof-1',
+      userId: cleanPhone,
+      name: user.name,
+      relation: 'Self',
+      age: 34,
+      gender: 'Female',
+      isPregnant: false,
+      chronicConditions: ['None'],
+      currentMedications: [],
+      avatar: '👩🏽'
+    };
+    store.profiles.set(cleanPhone, [defaultProfile]);
+
+    store.saveItem('user', user);
+    store.saveItem('profile', defaultProfile);
   } else {
     user.isVerified = true;
+    store.saveItem('user', user);
   }
 
   // Generate long-lived JWT token for permanent sign-in (FR-1.8)
@@ -123,6 +127,7 @@ export const verifyOtp = (req: Request, res: Response) => {
     phoneNumber: user.phoneNumber,
     role: user.role,
     name: user.name,
+    registrationNumber: user.doctorDetails?.registrationNumber,
     deviceId
   });
 
@@ -225,6 +230,9 @@ export const deleteUserAccount = (req: Request, res: Response) => {
   store.users.delete(user.id);
   store.profiles.delete(cleanPhone);
   activeOtps.delete(cleanPhone);
+
+  UserModel.deleteMany({ $or: [{ phoneNumber: cleanPhone }, { id: user.id }] }).catch(() => {});
+  FamilyProfileModel.deleteMany({ userId: cleanPhone }).catch(() => {});
 
   console.log(`[Account Deletion - FR-1.5] Permanent account deletion executed for +91-${cleanPhone}. All profiles removed.`);
 

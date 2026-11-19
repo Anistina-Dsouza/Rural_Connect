@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Language, 
   Doctor, 
@@ -8,6 +8,8 @@ import {
 } from '../types';
 import { translations } from '../data/translations';
 import { ApiService } from '../services/api';
+import { AgoraVideoPlayer } from './AgoraVideoPlayer';
+import { useAgoraCall } from '../hooks/useAgoraCall';
 import { 
   Mic, 
   MicOff, 
@@ -18,10 +20,7 @@ import {
   Wifi, 
   WifiOff, 
   Send,
-  Sparkles,
-  ExternalLink,
-  Copy,
-  Check
+  Sparkles
 } from 'lucide-react';
 
 interface VideoCallRoomProps {
@@ -45,8 +44,6 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
 }) => {
   const t = translations[currentLanguage];
 
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(initialBandwidthMode !== 'AUDIO_ONLY');
   const [bandwidthMode, setBandwidthMode] = useState<CallBandwidthMode>(initialBandwidthMode);
   const [callDuration, setCallDuration] = useState(0);
   const [showInCallChat, setShowInCallChat] = useState(false);
@@ -59,78 +56,10 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
   ]);
   const [inCallInput, setInCallInput] = useState('');
   const [showSummaryDrawer, setShowSummaryDrawer] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-
-  // Zoom Meeting State
-  const [zoomMeeting, setZoomMeeting] = useState<{
-    meetingId: string;
-    joinUrl: string;
-    password?: string;
-    topic?: string;
-  }>({
-    meetingId: '849 2018 4729',
-    joinUrl: 'https://zoom.us/j/84920184729?pwd=ruralcare',
-    password: 'ruralcare',
-    topic: 'RuralCare Telemedicine Consultation'
-  });
-
-  // Local WebRTC Video Stream Ref
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  // Fetch real Zoom Meeting details from backend
-  useEffect(() => {
-    if (consultationId && consultationId !== 'CONS-DEFAULT') {
-      ApiService.getZoomMeeting(consultationId)
-        .then((res) => {
-          if (res && res.success && res.zoomMeeting) {
-            setZoomMeeting(res.zoomMeeting);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [consultationId]);
-
-  // WebRTC Camera Activation
-  useEffect(() => {
-    let active = true;
-
-    async function startCamera() {
-      if (!isVideoOn || bandwidthMode === 'AUDIO_ONLY') {
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((t) => t.stop());
-          streamRef.current = null;
-        }
-        return;
-      }
-
-      try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-            audio: isMicOn
-          });
-          if (active) {
-            streamRef.current = stream;
-            if (localVideoRef.current) {
-              localVideoRef.current.srcObject = stream;
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('WebRTC camera preview fallback:', err);
-      }
-    }
-
-    startCamera();
-
-    return () => {
-      active = false;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, [isVideoOn, bandwidthMode, isMicOn]);
+  const agora = useAgoraCall(
+    consultationId,
+    initialBandwidthMode !== 'AUDIO_ONLY'
+  );
 
   // Call timer
   useEffect(() => {
@@ -144,12 +73,6 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
-  };
-
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard?.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
   };
 
   const handleSendInCallMessage = async (e: React.FormEvent) => {
@@ -193,8 +116,11 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
             onClick={() => {
               const nextMode: CallBandwidthMode = bandwidthMode === 'ADAPTIVE' ? 'AUDIO_ONLY' : 'ADAPTIVE';
               setBandwidthMode(nextMode);
-              setIsVideoOn(nextMode !== 'AUDIO_ONLY');
+              if (agora.isVideoEnabled !== (nextMode !== 'AUDIO_ONLY')) {
+                void agora.toggleVideo();
+              }
             }}
+            disabled={agora.status !== 'CONNECTED'}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${
               bandwidthMode === 'AUDIO_ONLY'
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
@@ -216,71 +142,40 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
         </div>
       </div>
 
-      {/* ── Zoom Telemedicine Banner ───────────────────────────────────── */}
-      <div className="bg-gradient-to-r from-blue-900/90 via-blue-800/90 to-indigo-900/90 px-4 py-2 border-b border-blue-700/50 flex flex-wrap items-center justify-between gap-3 text-white z-20">
+      {/* ── Agora Telemedicine Status ──────────────────────────────────── */}
+      <div className="bg-gradient-to-r from-emerald-950/90 via-emerald-900/90 to-teal-950/90 px-4 py-2 border-b border-emerald-700/50 flex flex-wrap items-center justify-between gap-3 text-white z-20">
         <div className="flex items-center gap-2.5">
           <span className="text-xl">📹</span>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-xs tracking-wide">Zoom Video Teleconsultation</span>
-              <span className="bg-blue-500/30 text-blue-200 text-[10px] font-mono px-1.5 py-0.5 rounded border border-blue-400/30">
-                HD 720p / 2G-Resilient
+              <span className="font-bold text-xs tracking-wide">Agora Video Consultation</span>
+              <span className="bg-emerald-500/30 text-emerald-200 text-[10px] font-mono px-1.5 py-0.5 rounded border border-emerald-400/30">
+                {agora.status === 'CONNECTED' ? 'Connected' : agora.status === 'CONNECTING' ? 'Connecting…' : agora.status === 'ERROR' ? 'Connection failed' : 'Not connected'}
               </span>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-blue-200 mt-0.5">
-              <span>
-                Meeting ID: <strong className="font-mono text-white">{zoomMeeting.meetingId}</strong>
-              </span>
-              {zoomMeeting.password && (
-                <span>
-                  Passcode: <strong className="font-mono text-white">{zoomMeeting.password}</strong>
-                </span>
-              )}
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => copyToClipboard(zoomMeeting.joinUrl, 'link')}
-            className="flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white text-xs px-2.5 py-1.5 rounded-lg border border-white/20 transition-all font-medium"
-          >
-            {copiedField === 'link' ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedField === 'link' ? 'Copied Link' : 'Copy Link'}</span>
-          </button>
-
-          <a
-            href={zoomMeeting.joinUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 active:scale-95 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-md transition-all border border-blue-400"
-          >
-            <span>Launch Zoom Video</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
+        {agora.error && <p role="alert" className="w-full text-xs text-red-200">{agora.error}</p>}
       </div>
 
       {/* ── Main Video Consultation Stage ─────────────────────────────── */}
       <div className="flex-1 relative flex flex-col md:flex-row overflow-hidden">
         {/* Doctor Video Area (Main) */}
         <div className="flex-1 relative bg-slate-900 flex items-center justify-center p-4">
-          {isVideoOn && bandwidthMode !== 'AUDIO_ONLY' ? (
+          {agora.isVideoEnabled && bandwidthMode !== 'AUDIO_ONLY' ? (
             <div className="relative w-full h-full max-h-[500px] rounded-2xl overflow-hidden bg-slate-800 flex items-center justify-center border border-slate-700">
-              <img
-                src={assignedDoctor.avatar}
-                alt={assignedDoctor.name}
-                className="w-full h-full object-cover object-top opacity-90 filter brightness-95"
-              />
+              <AgoraVideoPlayer
+                track={agora.remoteVideoTrack}
+                className="absolute inset-0 w-full h-full object-cover"
+              >
+                <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-300">
+                  <img src={assignedDoctor.avatar} alt="" className="w-24 h-24 rounded-full object-cover opacity-70" />
+                  <span className="text-sm">Waiting for Dr. {assignedDoctor.name} to join…</span>
+                </div>
+              </AgoraVideoPlayer>
               <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-white text-xs font-semibold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span>Dr. {assignedDoctor.name} (Live Clinical Stream)</span>
-              </div>
-
-              {/* Zoom In-Call Watermark */}
-              <div className="absolute top-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-white text-[11px] font-bold flex items-center gap-1">
-                <span>Zoom Active</span>
+                <span className={`w-2 h-2 rounded-full ${agora.remoteVideoTrack ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                <span>{agora.remoteVideoTrack ? `Dr. ${assignedDoctor.name}` : `Dr. ${assignedDoctor.name} • Waiting`}</span>
               </div>
             </div>
           ) : (
@@ -298,15 +193,9 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
 
           {/* Self Preview PIP (Bottom Right) with WebRTC Camera Stream */}
           <div className="absolute bottom-4 right-4 w-32 sm:w-44 h-40 sm:h-52 rounded-xl overflow-hidden bg-slate-800 border-2 border-slate-600 shadow-2xl flex items-center justify-center text-white text-center z-10">
-            {isVideoOn ? (
+            {agora.isVideoEnabled ? (
               <div className="relative w-full h-full bg-slate-900 flex items-center justify-center">
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                />
+                <AgoraVideoPlayer track={agora.localVideoTrack} className="w-full h-full object-cover" />
                 <div className="absolute bottom-1 left-1 right-1 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] text-slate-200 font-semibold truncate">
                   You ({activeProfile.name})
                 </div>
@@ -400,24 +289,29 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({
       <div className="bg-slate-900 px-6 py-4 flex items-center justify-center gap-4 border-t border-slate-800 z-20">
         {/* Mic Toggle */}
         <button
-          onClick={() => setIsMicOn(!isMicOn)}
+          onClick={() => void agora.toggleMicrophone()}
+          disabled={agora.status !== 'CONNECTED'}
           className={`p-3.5 rounded-full text-white transition ${
-            isMicOn ? 'bg-slate-800 hover:bg-slate-700' : 'bg-red-600 hover:bg-red-700'
+            agora.isMicrophoneEnabled ? 'bg-slate-800 hover:bg-slate-700' : 'bg-red-600 hover:bg-red-700'
           }`}
-          title={isMicOn ? 'Mute Mic' : 'Unmute Mic'}
+          title={agora.isMicrophoneEnabled ? 'Mute Mic' : 'Unmute Mic'}
         >
-          {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+          {agora.isMicrophoneEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
         </button>
 
         {/* Video Toggle */}
         <button
-          onClick={() => setIsVideoOn(!isVideoOn)}
+          onClick={() => {
+            void agora.toggleVideo();
+            setBandwidthMode(agora.isVideoEnabled ? 'AUDIO_ONLY' : 'ADAPTIVE');
+          }}
+          disabled={agora.status !== 'CONNECTED'}
           className={`p-3.5 rounded-full text-white transition ${
-            isVideoOn ? 'bg-slate-800 hover:bg-slate-700' : 'bg-red-600 hover:bg-red-700'
+            agora.isVideoEnabled ? 'bg-slate-800 hover:bg-slate-700' : 'bg-red-600 hover:bg-red-700'
           }`}
-          title={isVideoOn ? 'Turn Off Camera' : 'Turn On Camera'}
+          title={agora.isVideoEnabled ? 'Turn Off Camera' : 'Turn On Camera'}
         >
-          {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          {agora.isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
         </button>
 
         {/* In-Call Text Chat Toggle (PRD FR-4.7) */}

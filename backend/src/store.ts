@@ -29,6 +29,14 @@ import {
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
+function stripMeta(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  const clone = { ...obj };
+  delete clone._id;
+  delete clone.__v;
+  return clone;
+}
+
 class DataStore {
   public users: Map<string, IUser> = new Map(); // Keyed by ID or Phone or Email
   public profiles: Map<string, IFamilyProfile[]> = new Map(); // Keyed by Phone
@@ -141,7 +149,7 @@ class DataStore {
       if (userCount === 0) {
         const uniqueUsers = Array.from(new Set(this.users.values()));
         for (const u of uniqueUsers) {
-          await UserModel.findOneAndUpdate({ id: u.id }, u, { upsert: true, new: true });
+          await UserModel.findOneAndUpdate({ id: u.id }, stripMeta(u), { upsert: true, new: true });
         }
         console.log(`[Database] Seeded ${uniqueUsers.length} users into MongoDB.`);
       } else {
@@ -158,7 +166,7 @@ class DataStore {
       if (profileCount === 0) {
         for (const [phone, profiles] of this.profiles.entries()) {
           for (const p of profiles) {
-            await FamilyProfileModel.findOneAndUpdate({ id: p.id }, { ...p, userId: phone }, { upsert: true, new: true });
+            await FamilyProfileModel.findOneAndUpdate({ id: p.id }, stripMeta({ ...p, userId: phone }), { upsert: true, new: true });
           }
         }
       } else {
@@ -177,7 +185,7 @@ class DataStore {
       const docCount = await DoctorModel.countDocuments();
       if (docCount === 0) {
         for (const d of this.doctors) {
-          await DoctorModel.findOneAndUpdate({ id: d.id }, d, { upsert: true, new: true });
+          await DoctorModel.findOneAndUpdate({ id: d.id }, stripMeta(d), { upsert: true, new: true });
         }
       } else {
         const mongoDocs = await DoctorModel.find();
@@ -190,7 +198,7 @@ class DataStore {
       const consultCount = await ConsultationModel.countDocuments();
       if (consultCount === 0) {
         for (const c of this.consultations.values()) {
-          await ConsultationModel.findOneAndUpdate({ id: c.id }, c, { upsert: true, new: true });
+          await ConsultationModel.findOneAndUpdate({ id: c.id }, stripMeta(c), { upsert: true, new: true });
         }
       } else {
         const mongoConsults = await ConsultationModel.find();
@@ -206,7 +214,7 @@ class DataStore {
       const rxCount = await PrescriptionModel.countDocuments();
       if (rxCount === 0) {
         for (const rx of this.prescriptions.values()) {
-          await PrescriptionModel.findOneAndUpdate({ id: rx.id }, rx, { upsert: true, new: true });
+          await PrescriptionModel.findOneAndUpdate({ id: rx.id }, stripMeta(rx), { upsert: true, new: true });
         }
       } else {
         const mongoRxs = await PrescriptionModel.find();
@@ -220,7 +228,7 @@ class DataStore {
       if (vitalsCount === 0) {
         for (const [phone, vList] of this.vitals.entries()) {
           for (const v of vList) {
-            await VitalsModel.findOneAndUpdate({ id: v.id }, { ...v, patientPhone: phone }, { upsert: true, new: true });
+            await VitalsModel.findOneAndUpdate({ id: v.id }, stripMeta({ ...v, patientPhone: phone }), { upsert: true, new: true });
           }
         }
       } else {
@@ -239,7 +247,7 @@ class DataStore {
       if (followUpCount === 0) {
         for (const [rxId, fList] of this.followUps.entries()) {
           for (const f of fList) {
-            await FollowUpModel.findOneAndUpdate({ id: f.id }, { ...f, prescriptionId: rxId }, { upsert: true, new: true });
+            await FollowUpModel.findOneAndUpdate({ id: f.id }, stripMeta({ ...f, prescriptionId: rxId }), { upsert: true, new: true });
           }
         }
       } else {
@@ -257,7 +265,7 @@ class DataStore {
       const refCount = await ReferralNoteModel.countDocuments();
       if (refCount === 0) {
         for (const r of this.referrals.values()) {
-          await ReferralNoteModel.findOneAndUpdate({ id: r.id }, r, { upsert: true, new: true });
+          await ReferralNoteModel.findOneAndUpdate({ id: r.id }, stripMeta(r), { upsert: true, new: true });
         }
       } else {
         const mongoRefs = await ReferralNoteModel.find();
@@ -270,7 +278,7 @@ class DataStore {
       const auditCount = await AuditLogModel.countDocuments();
       if (auditCount === 0) {
         for (const a of this.auditLogs) {
-          await AuditLogModel.findOneAndUpdate({ id: a.id }, a, { upsert: true, new: true });
+          await AuditLogModel.findOneAndUpdate({ id: a.id }, stripMeta(a), { upsert: true, new: true });
         }
       } else {
         const mongoAudits = await AuditLogModel.find();
@@ -283,7 +291,7 @@ class DataStore {
       const facCount = await FacilityModel.countDocuments();
       if (facCount === 0) {
         for (const f of this.facilities) {
-          await FacilityModel.findOneAndUpdate({ id: f.id }, f, { upsert: true, new: true });
+          await FacilityModel.findOneAndUpdate({ id: f.id }, stripMeta(f), { upsert: true, new: true });
         }
       } else {
         const mongoFacs = await FacilityModel.find();
@@ -294,38 +302,43 @@ class DataStore {
 
       console.log('[Database] MongoDB data sync completed successfully.');
     } catch (err) {
-      console.warn('[Database] MongoDB sync notice:', (err as Error).message);
+      console.error('[Database] MongoDB sync failed:', (err as Error).name);
+      throw err;
     }
   }
 
   // Helper to persist changes asynchronously
-  public async saveItem(entity: 'user' | 'profile' | 'consultation' | 'prescription' | 'vitals' | 'followup' | 'referral', data: any) {
+  public async saveItem(entity: 'user' | 'profile' | 'consultation' | 'prescription' | 'vitals' | 'followup' | 'referral' | 'audit', data: any) {
     this.scheduleDiskSave();
 
     if (mongoose.connection.readyState !== 1) return;
 
     try {
+      const cleanData = stripMeta(data);
       switch (entity) {
         case 'user':
-          await UserModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
+          await UserModel.findOneAndUpdate({ id: data.id }, cleanData, { upsert: true });
           break;
         case 'profile':
-          await FamilyProfileModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
+          await FamilyProfileModel.findOneAndUpdate({ id: data.id }, cleanData, { upsert: true });
           break;
         case 'consultation':
-          await ConsultationModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
+          await ConsultationModel.findOneAndUpdate({ id: data.id }, cleanData, { upsert: true });
           break;
         case 'prescription':
-          await PrescriptionModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
+          await PrescriptionModel.findOneAndUpdate({ id: data.id }, cleanData, { upsert: true });
           break;
         case 'vitals':
-          await VitalsModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
+          await VitalsModel.findOneAndUpdate({ id: data.id }, cleanData, { upsert: true });
           break;
         case 'followup':
-          await FollowUpModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
+          await FollowUpModel.findOneAndUpdate({ id: data.id }, cleanData, { upsert: true });
           break;
         case 'referral':
-          await ReferralNoteModel.findOneAndUpdate({ id: data.id }, data, { upsert: true });
+          await ReferralNoteModel.findOneAndUpdate({ id: data.id }, cleanData, { upsert: true });
+          break;
+        case 'audit':
+          await AuditLogModel.findOneAndUpdate({ id: data.id }, cleanData, { upsert: true });
           break;
       }
     } catch (e) {
@@ -458,7 +471,7 @@ class DataStore {
     this.doctors = [
       {
         id: 'doc-1',
-        name: 'रमेश पटेल (Dr. Ramesh Patel)',
+        name: 'Dr. Ramesh Patel',
         specialization: 'General Physician & Telehealth Specialist',
         registrationNumber: 'NMC/MCI-2018-84729',
         councilName: 'Gujarat Medical Council / NMC India',
@@ -470,7 +483,19 @@ class DataStore {
       },
       {
         id: 'doc-2',
-        name: 'प्रिया शर्मा (Dr. Priya Sharma)',
+        name: 'Dr. Anita Patel',
+        specialization: 'Internal Medicine & Rural Outreach',
+        registrationNumber: 'NMC/MCI-2019-48921',
+        councilName: 'Gujarat Medical Council / NMC India',
+        experienceYears: 11,
+        languages: ['Hindi', 'English'],
+        isAvailable: true,
+        avatar: 'https://images.unsplash.com/photo-1594824813583-4712399e69e4?w=300&auto=format&fit=crop&q=80',
+        rating: 4.9
+      },
+      {
+        id: 'doc-3',
+        name: 'Dr. Priya Sharma',
         specialization: 'Family Medicine & Pediatrician',
         registrationNumber: 'NMC/MCI-2020-59218',
         councilName: 'Delhi Medical Council / NMC India',
@@ -482,83 +507,13 @@ class DataStore {
       }
     ];
 
-    // 6. Default Seed Prescription
-    const seedRxId = 'RC-2026-98124';
-    this.prescriptions.set(seedRxId, {
-      id: seedRxId,
-      consultationId: 'CONS-90182',
-      patientName: 'सुनीता देवी (Sunita Devi)',
-      patientAge: 34,
-      patientGender: 'Female',
-      patientPhone: defaultPatientPhone,
-      doctorName: this.doctors[0].name,
-      doctorRegNo: this.doctors[0].registrationNumber,
-      doctorCouncil: this.doctors[0].councilName,
-      doctorSignatureDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-      diagnosis: 'Acute Upper Respiratory Tract Infection (Mild Viral URI)',
-      symptoms: ['Mild fever', 'Dry cough', 'Throat irritation'],
-      medicines: [
-        {
-          id: 'm1',
-          name: 'Paracetamol',
-          dosage: '500mg',
-          frequency: '1-0-1 (Morning & Night)',
-          timing: 'After Food',
-          durationDays: 3,
-          instructionEn: 'Take 1 tablet after food only if fever or body pain is present.',
-          instructionHi: 'बुखार या शरीर दर्द होने पर ही भोजन के बाद 1 गोली लें।',
-          instructionGu: 'તાવ અથવા અંગ દુખાવા વખતે જ જમ્યા પછી 1 ગોળી લેવી.'
-        },
-        {
-          id: 'm2',
-          name: 'Cetirizine',
-          dosage: '10mg',
-          frequency: '0-0-1 (Bedtime)',
-          timing: 'After Food',
-          durationDays: 3,
-          instructionEn: 'Take 1 tablet at night for throat irritation and runny nose.',
-          instructionHi: 'गले की खराश के लिए रात को 1 गोली लें।',
-          instructionGu: 'ગળાની ખારાશ માટે રાત્રે 1 ગોળી લેવી.'
-        }
-      ],
-      generalAdvice: 'Drink plenty of warm water, gargle with warm salt water twice daily, and get adequate rest.',
-      followUpDays: 3,
-      verificationQrData: `https://ruralcare.gov.in/verify/${seedRxId}`,
-      isOfflineAvailable: true,
-      createdAt: new Date().toISOString()
-    });
+    // Prescriptions start empty - dynamically populated when doctors sign prescriptions
+    this.prescriptions = new Map();
 
-    // 7. Clinical Governance Audit Records
-    this.auditLogs = [
-      {
-        id: 'AUD-891',
-        timestamp: '2026-11-09 11:42',
-        patientPhone: defaultPatientPhone,
-        profileName: 'Sunita Devi',
-        initialComplaint: 'Chest tightness radiating to left shoulder',
-        aiTriageLevel: 'EMERGENCY',
-        doctorFinalDisposition: 'EMERGENCY',
-        isConcordant: true,
-        redFlagsDetected: ['Cardiac & Chest: Potential acute coronary syndrome'],
-        reviewedByClinician: true,
-        clinicalNotes: 'Correct emergency escalation. Ambulance 108 dispatched.'
-      },
-      {
-        id: 'AUD-890',
-        timestamp: '2026-11-09 11:15',
-        patientPhone: defaultPatientPhone,
-        profileName: 'Ramesh Patel',
-        initialComplaint: 'High BP medicine refill and mild evening headache for 4 days',
-        aiTriageLevel: 'CONSULT_SOON',
-        doctorFinalDisposition: 'CONSULT_SOON',
-        isConcordant: true,
-        redFlagsDetected: [],
-        reviewedByClinician: true,
-        clinicalNotes: 'Amlodipine refill issued successfully.'
-      }
-    ];
+    // 6. Clinical Governance Audit Records (System audit trail)
+    this.auditLogs = [];
 
-    // 8. Nearby Facilities
+    // 7. Nearby Facilities (Primary Health Centres and Community Health Centres)
     this.facilities = [
       {
         id: 'fac-1',
@@ -589,242 +544,14 @@ class DataStore {
       }
     ];
 
-    // 9. Initial Seed ASHA Vitals Records (FR-6)
-    this.vitals.set(defaultPatientPhone, [
-      {
-        id: 'vit-101',
-        patientPhone: defaultPatientPhone,
-        profileId: 'prof-1',
-        patientName: 'सुनीता देवी (Sunita Devi)',
-        systolicBp: 118,
-        diastolicBp: 78,
-        spO2: 98,
-        pulseRate: 74,
-        temperatureF: 98.6,
-        bloodSugarMgDl: 104,
-        recordedByAshaId: 'ASHA-GUJ-4091',
-        recordedByAshaName: 'मीना बेन (Meena Ben)',
-        notes: 'Routine doorstep wellness check. All vitals normal.',
-        timestamp: new Date(Date.now() - 86400000 * 2).toISOString()
-      },
-      {
-        id: 'vit-102',
-        patientPhone: defaultPatientPhone,
-        profileId: 'prof-2',
-        patientName: 'रमेश पटेल (Ramesh Patel)',
-        systolicBp: 138,
-        diastolicBp: 86,
-        spO2: 96,
-        pulseRate: 78,
-        temperatureF: 98.4,
-        bloodSugarMgDl: 142,
-        recordedByAshaId: 'ASHA-GUJ-4091',
-        recordedByAshaName: 'मीना बेन (Meena Ben)',
-        notes: 'Elder chronic monitoring. Blood pressure slightly elevated, taking Amlodipine regularly.',
-        timestamp: new Date(Date.now() - 86400000).toISOString()
-      }
-    ]);
+    // Vitals, Follow-ups, and Referrals start empty - filled by active patient interactions
+    this.vitals = new Map();
+    this.followUps = new Map();
+    this.referrals = new Map();
 
-    // 10. Initial Seed Follow-up Check-in (FR-6)
-    this.followUps.set(seedRxId, [
-      {
-        id: 'flw-001',
-        prescriptionId: seedRxId,
-        patientPhone: defaultPatientPhone,
-        profileId: 'prof-1',
-        patientName: 'सुनीता देवी (Sunita Devi)',
-        status: 'IMPROVED',
-        feedbackNotes: 'Fever subsided after 2 days of Paracetamol. Throat irritation much better.',
-        escalatedToDoctor: false,
-        timestamp: new Date().toISOString()
-      }
-    ]);
-
-    // 11. Initial Seed Clinical In-Person Referral Note (FR-4.5)
-    this.referrals.set('REF-7891', {
-      id: 'REF-7891',
-      consultationId: 'CONS-90182',
-      patientName: 'रमेश पटेल (Ramesh Patel)',
-      patientPhone: defaultPatientPhone,
-      referringDoctor: this.doctors[0].name,
-      doctorRegNo: this.doctors[0].registrationNumber,
-      targetFacility: 'Government Community Health Centre (CHC)',
-      priority: 'URGENT',
-      clinicalReason: 'Persistent elevated BP (160/100) unresponsive to routine dosage. Requires in-person ECG and serum creatinine evaluation.',
-      investigationsRequested: ['12-Lead ECG', 'Serum Creatinine', 'Fasting Blood Sugar'],
-      issuedAt: new Date().toISOString()
-    });
-
-    // 12. Initial Seed Consultations & Active Queue for Doctor Console
-    const consult1: IConsultation = {
-      id: 'CONS-AMAN-8',
-      patientPhoneNumber: '9823041189',
-      patientProfile: {
-        id: 'prof-aman',
-        userId: '9823041189',
-        name: 'Aman',
-        relation: 'Child',
-        age: 8,
-        gender: 'Male',
-        chronicConditions: ['None'],
-        currentMedications: [],
-        avatar: '👦🏽'
-      },
-      doctor: this.doctors[0],
-      status: 'IN_CALL',
-      triageSummary: {
-        triageLevel: 'CONSULT_SOON',
-        confidenceScore: 0.96,
-        matchedRedFlags: [],
-        primaryComplaint: 'Fever & Vomiting (2 days)',
-        structuredDetails: {
-          duration: '48 Hours',
-          severity: 'Moderate',
-          age: 8,
-          gender: 'Male',
-          pregnancy: false,
-          chronicConditions: [],
-          medications: []
-        },
-        approvedInterimAdvice: [
-          'Give Oral Rehydration Salts (ORS) in sips post loose stools.',
-          'Offer light rice gruel (kanji) and mashed bananas.',
-          'Maintain 6-hour interval between paracetamol doses.'
-        ],
-        doctorCaseSummary: {
-          chiefComplaint: 'Acute vomiting and elevated temperature for 48 hours in pediatric patient.',
-          timeline: 'Started Tuesday night, 3 episodes emesis.',
-          vitalsNotes: 'Temp: 102.1 °F, Capillary refill <2s, alert and tears present.',
-          redFlagCheck: 'No seizure, chest indrawing absent, drinking fluids.',
-          recommendedAction: 'Prescribe WHO ORS, Paracetamol oral suspension, Zinc gluconate. Monitor for 24h.'
-        },
-        disclaimer: 'Ayushman Bharat AI Clinical Decision Support protocol validated.'
-      },
-      queuePosition: 1,
-      estimatedWaitMinutes: 0,
-      scheduledAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-      startedAt: new Date(Date.now() - 1000 * 60 * 6).toISOString(),
-      bandwidthMode: '48KBPS_LITE',
-      chatMessages: [
-        {
-          sender: 'Dr. Anita Patel',
-          text: 'Namaste Sunita ji, I see Aman has high temperature. Has he passed urine today?',
-          time: '06:38 PM'
-        },
-        {
-          sender: 'Sunita Devi (Mother)',
-          text: 'Yes doctor sahiba, he passed urine 2 hours ago. But he vomited after drinking water.',
-          time: '06:40 PM'
-        }
-      ]
-    };
-
-    const consult2: IConsultation = {
-      id: 'CONS-RAMESH-62',
-      patientPhoneNumber: '9876543210',
-      patientProfile: {
-        id: 'prof-2',
-        userId: '9876543210',
-        name: 'Ramesh Patel',
-        relation: 'Parent',
-        age: 62,
-        gender: 'Male',
-        chronicConditions: ['Hypertension', 'Type 2 Diabetes'],
-        currentMedications: ['Amlodipine 5mg', 'Metformin 500mg'],
-        avatar: '👴🏽'
-      },
-      doctor: this.doctors[0],
-      status: 'QUEUED',
-      triageSummary: {
-        triageLevel: 'CONSULT_SOON',
-        confidenceScore: 0.94,
-        matchedRedFlags: [],
-        primaryComplaint: 'Hypertension Review & Medication Refill',
-        structuredDetails: {
-          duration: '4 Days',
-          severity: 'Mild',
-          age: 62,
-          gender: 'Male',
-          pregnancy: false,
-          chronicConditions: ['Hypertension'],
-          medications: ['Amlodipine 5mg']
-        },
-        approvedInterimAdvice: [
-          'Continue low-sodium dietary regimen.',
-          'Log morning and evening blood pressure numbers.'
-        ],
-        doctorCaseSummary: {
-          chiefComplaint: 'Routine hypertension evaluation, BP log check and 30-day refill.',
-          timeline: 'Chronic stable condition.',
-          vitalsNotes: 'Last measured BP at Sub-Centre: 142/88 mmHg, Pulse 74 bpm.',
-          redFlagCheck: 'No chest pain, no dizziness, no shortness of breath.',
-          recommendedAction: 'Renew Amlodipine 5mg OD for 30 days.'
-        },
-        disclaimer: 'Ayushman Bharat AI Clinical Decision Support protocol validated.'
-      },
-      queuePosition: 2,
-      estimatedWaitMinutes: 4,
-      scheduledAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-      bandwidthMode: 'ADAPTIVE',
-      chatMessages: []
-    };
-
-    const consult3: IConsultation = {
-      id: 'CONS-RADHA-29',
-      patientPhoneNumber: '9811223344',
-      patientProfile: {
-        id: 'prof-radha',
-        userId: '9811223344',
-        name: 'Radha',
-        relation: 'Self',
-        age: 29,
-        gender: 'Female',
-        isPregnant: true,
-        chronicConditions: ['None'],
-        currentMedications: ['Iron & Folic Acid'],
-        avatar: '👩🏽'
-      },
-      doctor: this.doctors[0],
-      status: 'QUEUED',
-      triageSummary: {
-        triageLevel: 'CONSULT_SOON',
-        confidenceScore: 0.92,
-        matchedRedFlags: [],
-        primaryComplaint: 'Antenatal Trimester 2 Routine Assessment',
-        structuredDetails: {
-          duration: 'Routine Check',
-          severity: 'Mild',
-          age: 29,
-          gender: 'Female',
-          pregnancy: true,
-          chronicConditions: [],
-          medications: ['IFA tablet']
-        },
-        approvedInterimAdvice: [
-          'Take Iron-Folic acid tablet post meals daily.',
-          'Hydrate well and monitor fetal kicks.'
-        ],
-        doctorCaseSummary: {
-          chiefComplaint: 'Trimester 2 routine ANC checkup with ASHA Meena Ben.',
-          timeline: 'Gestational age 24 weeks.',
-          vitalsNotes: 'Weight 52kg, BP 118/76 mmHg, Hemoglobin 11.2 g/dL.',
-          redFlagCheck: 'No bleeding, no severe edema, no visual disturbances.',
-          recommendedAction: 'Verify tetanus toxoid dose and calcium supplementation.'
-        },
-        disclaimer: 'Ayushman Bharat AI Clinical Decision Support protocol validated.'
-      },
-      queuePosition: 3,
-      estimatedWaitMinutes: 8,
-      scheduledAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-      bandwidthMode: 'ADAPTIVE',
-      chatMessages: []
-    };
-
-    this.consultations.set(consult1.id, consult1);
-    this.consultations.set(consult2.id, consult2);
-    this.consultations.set(consult3.id, consult3);
-
-    this.activeQueue = [consult1.id, consult2.id, consult3.id];
+    // Consultations and queue start empty - populated when patients join the queue
+    this.consultations = new Map();
+    this.activeQueue = [];
   }
 }
 

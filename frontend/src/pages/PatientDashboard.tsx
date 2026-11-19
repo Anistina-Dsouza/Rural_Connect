@@ -37,13 +37,20 @@ export default function PatientDashboard() {
   const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
 
   // User Session State (FR-1.1, FR-1.3, FR-1.4, FR-1.8)
-  const [userSession, setUserSession] = useState<UserSession>({
-    phoneNumber: '9876543210',
-    isVerified: true,
-    consentGiven: true,
-    activeProfileId: 'prof-1',
-    preferredLanguage: 'hi',
-    profiles: []
+  const [userSession, setUserSession] = useState<UserSession>(() => {
+    const savedPhone = localStorage.getItem('ruralcare_session_phone') || '9876543210';
+    const isVerified = localStorage.getItem('ruralcare_session_verified') === 'true';
+    const consentGiven = localStorage.getItem('ruralcare_session_consent') === 'true';
+    const savedLang = (localStorage.getItem('ruralcare_session_lang') as Language) || 'hi';
+    const savedProfileId = localStorage.getItem('ruralcare_session_profile') || 'prof-1';
+    return {
+      phoneNumber: savedPhone,
+      isVerified,
+      consentGiven,
+      activeProfileId: savedProfileId,
+      preferredLanguage: savedLang,
+      profiles: []
+    };
   });
 
   // Current Patient Active Profile
@@ -78,42 +85,12 @@ export default function PatientDashboard() {
   const [currentConsultationId, setCurrentConsultationId] = useState<string>('CONS-DEFAULT');
 
   // Active Prescription State
-  const [currentPrescription, setCurrentPrescription] = useState<Prescription>({
-    id: 'RC-2026-98124',
-    consultationId: 'CONS-90182',
-    patientName: activeProfile.name,
-    patientAge: activeProfile.age,
-    patientGender: activeProfile.gender,
-    patientPhone: userSession.phoneNumber,
-    doctorName: assignedDoctor.name,
-    doctorRegNo: assignedDoctor.registrationNumber,
-    doctorCouncil: assignedDoctor.councilName,
-    doctorSignatureDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-    diagnosis: 'Acute Upper Respiratory Tract Infection (Mild Viral URI)',
-    symptoms: ['Mild fever', 'Dry cough', 'Throat irritation'],
-    medicines: [
-      {
-        id: 'm1',
-        name: 'Paracetamol',
-        dosage: '500mg',
-        frequency: '1-0-1 (Morning & Night)',
-        timing: 'After Food',
-        durationDays: 3,
-        instructionEn: 'Take 1 tablet after food only if fever or body pain is present.',
-        instructionHi: 'बुखार या शरीर दर्द होने पर ही भोजन के बाद 1 गोली लें।',
-        instructionGu: 'તાવ અથવા અંગ દુખાવા વખતે જ જમ્યા પછી 1 ગોળી લેવી.'
-      }
-    ],
-    generalAdvice: 'Drink plenty of warm water and observe adequate rest.',
-    followUpDays: 3,
-    verificationQrData: 'https://ruralcare.gov.in/verify/RC-2026-98124',
-    isOfflineAvailable: true,
-    createdAt: new Date().toISOString()
-  });
+  const [currentPrescription, setCurrentPrescription] = useState<Prescription | null>(null);
+  const [prescriptionLoading, setPrescriptionLoading] = useState(false);
 
   // FR-1.8 & FR-1.9: Permanent Device Sign-in Check on App Mount
   useEffect(() => {
-    const savedPhone = localStorage.getItem('ruralcare_session_phone');
+    const savedPhone = localStorage.getItem('ruralcare_session_phone') || userSession.phoneNumber;
     const isVerified = localStorage.getItem('ruralcare_session_verified');
     const consentGiven = localStorage.getItem('ruralcare_session_consent') === 'true';
     const savedLang = localStorage.getItem('ruralcare_session_lang') as Language;
@@ -123,15 +100,33 @@ export default function PatientDashboard() {
       setIsOnboardingOpen(true);
     }
 
-    ApiService.getProfiles(savedPhone || userSession.phoneNumber)
+    // 1. Fetch user & profiles from MongoDB
+    ApiService.getMe()
+      .then(res => {
+        if (res && res.user) {
+          const userPhone = res.user.phoneNumber || savedPhone;
+          const profiles = res.profiles || [];
+          const activeId = localStorage.getItem('ruralcare_session_profile') || res.user.activeProfileId || profiles[0]?.id || 'prof-1';
+          setUserSession(prev => ({
+            ...prev,
+            phoneNumber: userPhone,
+            isVerified: true,
+            consentGiven: res.user.consentGiven ?? consentGiven,
+            profiles: profiles.length > 0 ? profiles : prev.profiles,
+            activeProfileId: activeId
+          }));
+        }
+      })
+      .catch(() => {});
+
+    ApiService.getProfiles(savedPhone)
       .then(data => {
         if (data && data.profiles && data.profiles.length > 0) {
           const savedProfileId = localStorage.getItem('ruralcare_session_profile');
           setUserSession(prev => ({
             ...prev,
-            phoneNumber: savedPhone || prev.phoneNumber,
+            phoneNumber: savedPhone,
             isVerified: true,
-            consentGiven,
             profiles: data.profiles,
             activeProfileId: savedProfileId || data.activeProfileId || data.profiles[0].id
           }));
@@ -139,26 +134,53 @@ export default function PatientDashboard() {
       })
       .catch(err => console.log('Profile loading note:', err));
 
+    // 2. Fetch doctors from MongoDB
     ApiService.getDoctors()
       .then(res => {
         if (res && res.success && res.doctors && res.doctors.length > 0) {
-          setAssignedDoctor(res.doctors[0]);
+          const activeDoc = res.doctors.find(d => d.isAvailable) || res.doctors[0];
+          setAssignedDoctor(activeDoc);
         }
       })
       .catch(err => console.log('Doctor loading note:', err));
+
+    // 3. Fetch latest prescription from MongoDB
+    ApiService.getAllPrescriptions(savedPhone)
+      .then(res => {
+        if (res && res.success && res.prescriptions && res.prescriptions.length > 0) {
+          setCurrentPrescription(res.prescriptions[0]);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Fetch latest dynamic prescription on switching to PRESCRIPTION tab
   useEffect(() => {
     if (patientScreen === 'PRESCRIPTION' || patientScreen === 'FOLLOW_UP') {
+      setPrescriptionLoading(true);
       ApiService.getAllPrescriptions(userSession.phoneNumber)
         .then(res => {
           if (res && res.success && res.prescriptions && res.prescriptions.length > 0) {
             setCurrentPrescription(res.prescriptions[0]);
           }
         })
-        .catch(e => console.warn('Prescriptions fetch note:', e));
+        .catch(e => console.warn('Prescriptions fetch note:', e))
+        .finally(() => setPrescriptionLoading(false));
     }
+  }, [patientScreen, userSession.phoneNumber]);
+
+  // Auto-poll for prescription every 10s when on PRESCRIPTION screen
+  useEffect(() => {
+    if (patientScreen !== 'PRESCRIPTION') return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await ApiService.getAllPrescriptions(userSession.phoneNumber);
+        if (res?.success && res.prescriptions?.length > 0) {
+          setCurrentPrescription(res.prescriptions[0]);
+        }
+      } catch {}
+    }, 10000);
+    return () => clearInterval(interval);
   }, [patientScreen, userSession.phoneNumber]);
 
   // Handlers for FR-1
@@ -233,7 +255,12 @@ export default function PatientDashboard() {
   const handleJoinQueue = async () => {
     try {
       const res = await ApiService.joinQueue(userSession.phoneNumber, activeProfile, triageSummary, bandwidthMode);
-      if (res && res.consultation) setCurrentConsultationId(res.consultation.id);
+      if (res && res.consultation) {
+        setCurrentConsultationId(res.consultation.id);
+        if (res.consultation.doctor) {
+          setAssignedDoctor(res.consultation.doctor);
+        }
+      }
     } catch (e) { console.warn('Queue API join note:', e); }
     setPatientScreen('QUEUE');
   };
@@ -317,21 +344,70 @@ export default function PatientDashboard() {
               onEndCall={() => { ApiService.endConsultation(currentConsultationId); setPatientScreen('PRESCRIPTION'); }}
             />
           )}
-          {patientScreen === 'PRESCRIPTION' && (
+          {patientScreen === 'PRESCRIPTION' && currentPrescription && (
             <PrescriptionViewer
               currentLanguage={currentLanguage}
               prescription={currentPrescription}
               onVerifyPrescription={id => setPatientScreen('VERIFY')}
             />
           )}
-          {patientScreen === 'VERIFY' && (
+          {patientScreen === 'PRESCRIPTION' && !currentPrescription && (
+            <div className="max-w-2xl mx-auto mt-10 p-8 bg-white rounded-3xl border-2 border-slate-200 shadow-sm text-center">
+              {prescriptionLoading ? (
+                <>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-50 flex items-center justify-center animate-pulse">
+                    <span className="text-3xl">📋</span>
+                  </div>
+                  <h3 className="font-bold text-slate-700 text-lg mb-1">Checking for Prescription...</h3>
+                  <p className="text-slate-500 text-sm">Connecting to the registry</p>
+                </>
+              ) : (
+                <>
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center">
+                    <span className="text-4xl">📋</span>
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-xl mb-2">No Prescription Yet</h3>
+                  <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                    Your doctor will issue a digital prescription after the consultation.<br />
+                    It will appear here automatically once issued.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button
+                      onClick={async () => {
+                        setPrescriptionLoading(true);
+                        try {
+                          const res = await ApiService.getAllPrescriptions(userSession.phoneNumber);
+                          if (res?.success && res.prescriptions?.length > 0) {
+                            setCurrentPrescription(res.prescriptions[0]);
+                          }
+                        } catch {}
+                        setPrescriptionLoading(false);
+                      }}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-xs"
+                    >
+                      <span>🔄</span>
+                      <span>Refresh</span>
+                    </button>
+                    <button
+                      onClick={() => setPatientScreen('QUEUE')}
+                      className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition"
+                    >
+                      Back to Queue
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-5">Auto-refreshes every 10 seconds • Connected to live registry</p>
+                </>
+              )}
+            </div>
+          )}
+          {patientScreen === 'VERIFY' && currentPrescription && (
             <PrescriptionVerifier
               currentLanguage={currentLanguage}
               initialId={currentPrescription.id}
               onBack={() => setPatientScreen('PRESCRIPTION')}
             />
           )}
-          {patientScreen === 'FOLLOW_UP' && (
+          {patientScreen === 'FOLLOW_UP' && currentPrescription && (
             <FollowUpCheckIn
               currentLanguage={currentLanguage}
               activeProfile={activeProfile}

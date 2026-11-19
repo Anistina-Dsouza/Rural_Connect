@@ -1,15 +1,18 @@
 {
   "users": {
     "1234567890": {
+      "_id": "6afd6b94b1f4e1819749f15a",
       "id": "usr-1794921265533",
+      "__v": 0,
+      "activeProfileId": "prof-1",
+      "consentGiven": false,
+      "createdAt": "Wed Nov 18 2026 14:40:43 GMT+0530 (India Standard Time)",
+      "isVerified": true,
       "name": "सुनीता देवी (Sunita Devi)",
       "phoneNumber": "1234567890",
-      "role": "PATIENT",
-      "isVerified": true,
-      "consentGiven": false,
-      "activeProfileId": "prof-1",
       "preferredLanguage": "hi",
-      "createdAt": "2026-11-17T13:14:25.533Z"
+      "role": "PATIENT",
+      "updatedAt": "2026-11-18T09:10:43.773Z"
     },
     "9876543210": {
       "_id": "6afc4b98cf418befa6414df6",
@@ -17,14 +20,13 @@
       "__v": 0,
       "activeProfileId": "prof-1",
       "consentGiven": true,
-      "createdAt": "Tue Nov 17 2026 18:12:00 GMT+0530 (India Standard Time)",
+      "createdAt": "Wed Nov 18 2026 14:18:04 GMT+0530 (India Standard Time)",
       "isVerified": true,
       "name": "सुनीता देवी (Sunita Devi)",
       "phoneNumber": "9876543210",
-      "pinProtected": false,
       "preferredLanguage": "hi",
       "role": "PATIENT",
-      "updatedAt": "2026-11-17T12:42:00.347Z"
+      "updatedAt": "2026-11-18T08:48:04.496Z"
     },
     "usr-patient-1": {
       "_id": "6afc4b98cf418befa6414df6",
@@ -32,25 +34,15 @@
       "__v": 0,
       "activeProfileId": "prof-1",
       "consentGiven": true,
-      "createdAt": "Tue Nov 17 2026 18:12:00 GMT+0530 (India Standard Time)",
+      "createdAt": "Wed Nov 18 2026 14:18:04 GMT+0530 (India Standard Time)",
       "isVerified": true,
       "name": "सुनीता देवी (Sunita Devi)",
       "phoneNumber": "9876543210",
-      "pinProtected": false,
       "preferredLanguage": "hi",
       "role": "PATIENT",
-      "updatedAt": "2026-11-17T12:42:00.347Z"
+      "updatedAt": "2026-11-18T08:48:04.496Z"
     },
     "doctor@ruralcare.gov.in": {
-      "id": "usr-doc-1",
-      "name": "Dr. Ramesh Patel",
-      "email": "doctor@ruralcare.gov.in",
-      "phoneNumber": "9822334455",
-      "passwordHash": "doctor123",
-      "role": "DOCTOR",
-      "isVerified": true,
-      "consentGiven": true,
-      "preferredLanguage": "en",
       "doctorDetails": {
         "registrationNumber": "NMC/MCI-2018-84729",
         "councilName": "Gujarat Medical Council / NMC India",
@@ -59,7 +51,19 @@
         "isNmcVerified": true,
         "verificationDate": "2024-01-15"
       },
-      "createdAt": "2026-11-17T13:01:24.488Z"
+      "_id": "6afd6644b1f4e1819749f11b",
+      "id": "usr-doc-1",
+      "__v": 0,
+      "consentGiven": true,
+      "createdAt": "Wed Nov 18 2026 14:18:04 GMT+0530 (India Standard Time)",
+      "email": "doctor@ruralcare.gov.in",
+      "isVerified": true,
+      "name": "Dr. Ramesh Patel",
+      "passwordHash": "doctor123",
+      "phoneNumber": "9822334455",
+      "preferredLanguage": "en",
+      "role": "DOCTOR",
+      "updatedAt": "2026-11-18T09:11:04.176Z"
     },
     "NMC/MCI-2018-84729": {
       "id": "usr-doc-1",
@@ -82,18 +86,27 @@
       "createdAt": "2026-11-17T13:01:24.488Z"
     },
     "usr-doc-1": {
-      "_id": "6afc4b98cf418befa6414df7",
+      "doctorDetails": {
+        "registrationNumber": "NMC/MCI-2018-84729",
+        "councilName": "Gujarat Medical Council / NMC India",
+        "specialization": "General Physician & Telehealth Specialist",
+        "experienceYears": 14,
+        "isNmcVerified": true,
+        "verificationDate": "2024-01-15"
+      },
+      "_id": "6afd6644b1f4e1819749f11b",
       "id": "usr-doc-1",
       "__v": 0,
       "consentGiven": true,
-      "createdAt": "Tue Nov 17 2026 18:12:00 GMT+0530 (India Standard Time)",
+      "createdAt": "Wed Nov 18 2026 14:18:04 GMT+0530 (India Standard Time)",
+      "email": "doctor@ruralcare.gov.in",
       "isVerified": true,
       "name": "Dr. Ramesh Patel",
+      "passwordHash": "doctor123",
       "phoneNumber": "9822334455",
-      "pinProtected": false,
       "preferredLanguage": "en",
       "role": "DOCTOR",
-      "updatedAt": "2026-11-17T12:42:00.383Z"
+      "updatedAt": "2026-11-18T09:11:04.176Z"
     },
     "9811223344": {
       "_id": "6afc4b98cf418befa6414df8",
@@ -167,18 +180,27 @@
       "updatedAt": "2026-11-17T12:42:00.394Z"
     },
     "9822334455": {
-      "_id": "6afc4b98cf418befa6414df7",
+      "doctorDetails": {
+        "registrationNumber": "NMC/MCI-2018-84729",
+        "councilName": "Gujarat Medical Council / NMC India",
+        "specialization": "General Physician & Telehealth Specialist",
+        "experienceYears": 14,
+        "isNmcVerified": true,
+        "verificationDate": "2024-01-15"
+      },
+      "_id": "6afd6644b1f4e1819749f11b",
       "id": "usr-doc-1",
       "__v": 0,
       "consentGiven": true,
-      "createdAt": "Tue Nov 17 2026 18:12:00 GMT+0530 (India Standard Time)",
+      "createdAt": "Wed Nov 18 2026 14:18:04 GMT+0530 (India Standard Time)",
+      "email": "doctor@ruralcare.gov.in",
       "isVerified": true,
       "name": "Dr. Ramesh Patel",
+      "passwordHash": "doctor123",
       "phoneNumber": "9822334455",
-      "pinProtected": false,
       "preferredLanguage": "en",
       "role": "DOCTOR",
-      "updatedAt": "2026-11-17T12:42:00.383Z"
+      "updatedAt": "2026-11-18T09:11:04.176Z"
     },
     "9800112233": {
       "_id": "6afc4b98cf418befa6414df9",
@@ -195,15 +217,18 @@
       "updatedAt": "2026-11-17T12:42:00.394Z"
     },
     "usr-1794921265533": {
+      "_id": "6afd6b94b1f4e1819749f15a",
       "id": "usr-1794921265533",
+      "__v": 0,
+      "activeProfileId": "prof-1",
+      "consentGiven": false,
+      "createdAt": "Wed Nov 18 2026 14:40:43 GMT+0530 (India Standard Time)",
+      "isVerified": true,
       "name": "सुनीता देवी (Sunita Devi)",
       "phoneNumber": "1234567890",
-      "role": "PATIENT",
-      "isVerified": true,
-      "consentGiven": false,
-      "activeProfileId": "prof-1",
       "preferredLanguage": "hi",
-      "createdAt": "2026-11-17T13:14:25.533Z"
+      "role": "PATIENT",
+      "updatedAt": "2026-11-18T09:10:43.773Z"
     }
   },
   "profiles": {
@@ -272,12 +297,12 @@
   },
   "doctors": [
     {
-      "_id": "6afc4b98cf418befa6414dfd",
+      "_id": "6afd6743b1f4e1819749f126",
       "id": "doc-1",
       "__v": 0,
       "avatar": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80",
       "councilName": "Gujarat Medical Council / NMC India",
-      "createdAt": "2026-11-17T12:42:00.420Z",
+      "createdAt": "2026-11-18T08:52:18.772Z",
       "experienceYears": 14,
       "isAvailable": true,
       "languages": [
@@ -289,15 +314,15 @@
       "rating": 4.9,
       "registrationNumber": "NMC/MCI-2018-84729",
       "specialization": "General Physician & Telehealth Specialist",
-      "updatedAt": "2026-11-17T12:42:00.420Z"
+      "updatedAt": "2026-11-18T08:52:18.772Z"
     },
     {
-      "_id": "6afc4b98cf418befa6414dfe",
+      "_id": "6afd6743b1f4e1819749f127",
       "id": "doc-2",
       "__v": 0,
       "avatar": "https://images.unsplash.com/photo-1594824813583-4712399e69e4?w=300&auto=format&fit=crop&q=80",
       "councilName": "Delhi Medical Council / NMC India",
-      "createdAt": "2026-11-17T12:42:00.427Z",
+      "createdAt": "2026-11-18T08:52:18.871Z",
       "experienceYears": 8,
       "isAvailable": true,
       "languages": [
@@ -308,284 +333,24 @@
       "rating": 4.8,
       "registrationNumber": "NMC/MCI-2020-59218",
       "specialization": "Family Medicine & Pediatrician",
-      "updatedAt": "2026-11-17T12:42:00.427Z"
+      "updatedAt": "2026-11-18T08:52:18.871Z"
     }
   ],
   "consultations": {
-    "CONS-AMAN-8": {
-      "_id": "6afc4b98cf418befa6414dff",
-      "id": "CONS-AMAN-8",
+    "CONS-177100": {
+      "_id": "6afd6743b1f4e1819749f12b",
+      "id": "CONS-177100",
       "__v": 0,
-      "bandwidthMode": "48KBPS_LITE",
+      "bandwidthMode": "ADAPTIVE",
       "chatMessages": [
         {
-          "sender": "Dr. Anita Patel",
-          "text": "Namaste Sunita ji, I see Aman has high temperature. Has he passed urine today?",
-          "time": "06:38 PM",
-          "_id": "6afc4b98fad4e3274c735686"
-        },
-        {
-          "sender": "Sunita Devi (Mother)",
-          "text": "Yes doctor sahiba, he passed urine 2 hours ago. But he vomited after drinking water.",
-          "time": "06:40 PM",
-          "_id": "6afc4b98fad4e3274c735687"
+          "sender": "Dr. रमेश पटेल (Dr. Ramesh Patel)",
+          "text": "Namaste! I am reviewing your AI triage summary. How are you feeling right now?",
+          "time": "07:32 pm",
+          "_id": "6afd674358808a3ea7c2dba8"
         }
       ],
-      "createdAt": "2026-11-17T12:42:00.433Z",
-      "doctor": {
-        "id": "doc-1",
-        "name": "रमेश पटेल (Dr. Ramesh Patel)",
-        "specialization": "General Physician & Telehealth Specialist",
-        "registrationNumber": "NMC/MCI-2018-84729",
-        "councilName": "Gujarat Medical Council / NMC India",
-        "experienceYears": 14,
-        "languages": [
-          "Hindi",
-          "Gujarati",
-          "English"
-        ],
-        "isAvailable": true,
-        "avatar": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80",
-        "rating": 4.9
-      },
-      "estimatedWaitMinutes": 0,
-      "patientPhoneNumber": "9823041189",
-      "patientProfile": {
-        "id": "prof-aman",
-        "userId": "9823041189",
-        "name": "Aman",
-        "relation": "Child",
-        "age": 8,
-        "gender": "Male",
-        "chronicConditions": [
-          "None"
-        ],
-        "currentMedications": [],
-        "avatar": "👦🏽"
-      },
-      "queuePosition": 1,
-      "scheduledAt": "2026-11-17T12:26:59.970Z",
-      "startedAt": "2026-11-17T12:35:59.970Z",
-      "status": "COMPLETED",
-      "triageSummary": {
-        "triageLevel": "CONSULT_SOON",
-        "confidenceScore": 0.96,
-        "matchedRedFlags": [],
-        "primaryComplaint": "Fever & Vomiting (2 days)",
-        "structuredDetails": {
-          "duration": "48 Hours",
-          "severity": "Moderate",
-          "age": 8,
-          "gender": "Male",
-          "pregnancy": false,
-          "chronicConditions": [],
-          "medications": []
-        },
-        "approvedInterimAdvice": [
-          "Give Oral Rehydration Salts (ORS) in sips post loose stools.",
-          "Offer light rice gruel (kanji) and mashed bananas.",
-          "Maintain 6-hour interval between paracetamol doses."
-        ],
-        "doctorCaseSummary": {
-          "chiefComplaint": "Acute vomiting and elevated temperature for 48 hours in pediatric patient.",
-          "timeline": "Started Tuesday night, 3 episodes emesis.",
-          "vitalsNotes": "Temp: 102.1 °F, Capillary refill <2s, alert and tears present.",
-          "redFlagCheck": "No seizure, chest indrawing absent, drinking fluids.",
-          "recommendedAction": "Prescribe WHO ORS, Paracetamol oral suspension, Zinc gluconate. Monitor for 24h."
-        },
-        "disclaimer": "Ayushman Bharat AI Clinical Decision Support protocol validated."
-      },
-      "updatedAt": "2026-11-17T13:39:51.566Z",
-      "endedAt": "2026-11-17T14:04:15.986Z"
-    },
-    "CONS-RAMESH-62": {
-      "zoomMeeting": {
-        "meetingId": "501 2807 0646",
-        "joinUrl": "https://zoom.us/j/50128070646?pwd=819227",
-        "startUrl": "https://zoom.us/s/50128070646?pwd=819227&role=1",
-        "password": "819227",
-        "topic": "RuralCare Telemedicine: Ramesh Patel"
-      },
-      "_id": "6afc4b98cf418befa6414e00",
-      "id": "CONS-RAMESH-62",
-      "__v": 0,
-      "bandwidthMode": "ADAPTIVE",
-      "chatMessages": [],
-      "createdAt": "2026-11-17T12:42:00.445Z",
-      "doctor": {
-        "id": "doc-1",
-        "name": "रमेश पटेल (Dr. Ramesh Patel)",
-        "specialization": "General Physician & Telehealth Specialist",
-        "registrationNumber": "NMC/MCI-2018-84729",
-        "councilName": "Gujarat Medical Council / NMC India",
-        "experienceYears": 14,
-        "languages": [
-          "Hindi",
-          "Gujarati",
-          "English"
-        ],
-        "isAvailable": true,
-        "avatar": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80",
-        "rating": 4.9
-      },
-      "estimatedWaitMinutes": 4,
-      "patientPhoneNumber": "9876543210",
-      "patientProfile": {
-        "id": "prof-2",
-        "userId": "9876543210",
-        "name": "Ramesh Patel",
-        "relation": "Parent",
-        "age": 62,
-        "gender": "Male",
-        "chronicConditions": [
-          "Hypertension",
-          "Type 2 Diabetes"
-        ],
-        "currentMedications": [
-          "Amlodipine 5mg",
-          "Metformin 500mg"
-        ],
-        "avatar": "👴🏽"
-      },
-      "queuePosition": 2,
-      "scheduledAt": "2026-11-17T12:31:59.971Z",
-      "status": "COMPLETED",
-      "triageSummary": {
-        "triageLevel": "CONSULT_SOON",
-        "confidenceScore": 0.94,
-        "matchedRedFlags": [],
-        "primaryComplaint": "Hypertension Review & Medication Refill",
-        "structuredDetails": {
-          "duration": "4 Days",
-          "severity": "Mild",
-          "age": 62,
-          "gender": "Male",
-          "pregnancy": false,
-          "chronicConditions": [
-            "Hypertension"
-          ],
-          "medications": [
-            "Amlodipine 5mg"
-          ]
-        },
-        "approvedInterimAdvice": [
-          "Continue low-sodium dietary regimen.",
-          "Log morning and evening blood pressure numbers."
-        ],
-        "doctorCaseSummary": {
-          "chiefComplaint": "Routine hypertension evaluation, BP log check and 30-day refill.",
-          "timeline": "Chronic stable condition.",
-          "vitalsNotes": "Last measured BP at Sub-Centre: 142/88 mmHg, Pulse 74 bpm.",
-          "redFlagCheck": "No chest pain, no dizziness, no shortness of breath.",
-          "recommendedAction": "Renew Amlodipine 5mg OD for 30 days."
-        },
-        "disclaimer": "Ayushman Bharat AI Clinical Decision Support protocol validated."
-      },
-      "updatedAt": "2026-11-17T13:40:36.630Z",
-      "startedAt": "2026-11-17T13:39:54.512Z",
-      "endedAt": "2026-11-17T13:40:36.627Z"
-    },
-    "CONS-RADHA-29": {
-      "zoomMeeting": {
-        "meetingId": "442 2969 6935",
-        "joinUrl": "https://zoom.us/j/44229696935?pwd=636484",
-        "startUrl": "https://zoom.us/s/44229696935?pwd=636484&role=1",
-        "password": "636484",
-        "topic": "RuralCare Telemedicine: Radha"
-      },
-      "_id": "6afc4b98cf418befa6414e01",
-      "id": "CONS-RADHA-29",
-      "__v": 0,
-      "bandwidthMode": "ADAPTIVE",
-      "chatMessages": [],
-      "createdAt": "2026-11-17T12:42:00.448Z",
-      "doctor": {
-        "id": "doc-1",
-        "name": "रमेश पटेल (Dr. Ramesh Patel)",
-        "specialization": "General Physician & Telehealth Specialist",
-        "registrationNumber": "NMC/MCI-2018-84729",
-        "councilName": "Gujarat Medical Council / NMC India",
-        "experienceYears": 14,
-        "languages": [
-          "Hindi",
-          "Gujarati",
-          "English"
-        ],
-        "isAvailable": true,
-        "avatar": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80",
-        "rating": 4.9
-      },
-      "estimatedWaitMinutes": 8,
-      "patientPhoneNumber": "9811223344",
-      "patientProfile": {
-        "id": "prof-radha",
-        "userId": "9811223344",
-        "name": "Radha",
-        "relation": "Self",
-        "age": 29,
-        "gender": "Female",
-        "isPregnant": true,
-        "chronicConditions": [
-          "None"
-        ],
-        "currentMedications": [
-          "Iron & Folic Acid"
-        ],
-        "avatar": "👩🏽"
-      },
-      "queuePosition": 3,
-      "scheduledAt": "2026-11-17T12:36:59.971Z",
-      "status": "COMPLETED",
-      "triageSummary": {
-        "triageLevel": "CONSULT_SOON",
-        "confidenceScore": 0.92,
-        "matchedRedFlags": [],
-        "primaryComplaint": "Antenatal Trimester 2 Routine Assessment",
-        "structuredDetails": {
-          "duration": "Routine Check",
-          "severity": "Mild",
-          "age": 29,
-          "gender": "Female",
-          "pregnancy": true,
-          "chronicConditions": [],
-          "medications": [
-            "IFA tablet"
-          ]
-        },
-        "approvedInterimAdvice": [
-          "Take Iron-Folic acid tablet post meals daily.",
-          "Hydrate well and monitor fetal kicks."
-        ],
-        "doctorCaseSummary": {
-          "chiefComplaint": "Trimester 2 routine ANC checkup with ASHA Meena Ben.",
-          "timeline": "Gestational age 24 weeks.",
-          "vitalsNotes": "Weight 52kg, BP 118/76 mmHg, Hemoglobin 11.2 g/dL.",
-          "redFlagCheck": "No bleeding, no severe edema, no visual disturbances.",
-          "recommendedAction": "Verify tetanus toxoid dose and calcium supplementation."
-        },
-        "disclaimer": "Ayushman Bharat AI Clinical Decision Support protocol validated."
-      },
-      "updatedAt": "2026-11-17T13:43:29.455Z",
-      "startedAt": "2026-11-17T13:43:02.078Z",
-      "endedAt": "2026-11-17T13:43:29.450Z"
-    },
-    "CONS-177100": {
-      "id": "CONS-177100",
-      "patientPhoneNumber": "1234567890",
-      "patientProfile": {
-        "id": "prof-1",
-        "userId": "1234567890",
-        "name": "सुनीता देवी (Sunita Devi)",
-        "relation": "Self",
-        "age": 34,
-        "gender": "Female",
-        "isPregnant": false,
-        "chronicConditions": [
-          "None"
-        ],
-        "currentMedications": [],
-        "avatar": "👩🏽"
-      },
+      "createdAt": "2026-11-18T08:52:19.370Z",
       "doctor": {
         "_id": "6afc4b98cf418befa6414dfd",
         "id": "doc-1",
@@ -606,83 +371,99 @@
         "specialization": "General Physician & Telehealth Specialist",
         "updatedAt": "2026-11-17T12:42:00.420Z"
       },
+      "estimatedWaitMinutes": 12,
+      "patientPhoneNumber": "1234567890",
+      "patientProfile": {
+        "id": "prof-1",
+        "userId": "1234567890",
+        "name": "सुनीता देवी (Sunita Devi)",
+        "relation": "Self",
+        "age": 34,
+        "gender": "Female",
+        "isPregnant": false,
+        "chronicConditions": [
+          "None"
+        ],
+        "currentMedications": [],
+        "avatar": "👩🏽"
+      },
+      "queuePosition": 4,
+      "scheduledAt": "2026-11-17T14:02:57.101Z",
       "status": "COMPLETED",
       "triageSummary": null,
-      "queuePosition": 4,
-      "estimatedWaitMinutes": 12,
-      "scheduledAt": "2026-11-17T14:02:57.101Z",
-      "bandwidthMode": "ADAPTIVE",
+      "updatedAt": "2026-11-18T08:52:19.370Z",
       "zoomMeeting": {
         "meetingId": "250 7453 9925",
         "joinUrl": "https://zoom.us/j/25074539925?pwd=547724",
         "startUrl": "https://zoom.us/s/25074539925?pwd=547724&role=1",
         "password": "547724",
-        "topic": "RuralCare Telemedicine: सुनीता देवी (Sunita Devi)",
-        "createdAt": "2026-11-17T14:02:57.100Z"
+        "topic": "RuralCare Telemedicine: सुनीता देवी (Sunita Devi)"
+      }
+    },
+    "CONS-234254": {
+      "_id": "6afec02ad0b77e3d545e8c6a",
+      "id": "CONS-234254",
+      "patientPhoneNumber": "1234567890",
+      "patientProfile": {
+        "id": "prof-1",
+        "userId": "1234567890",
+        "name": "सुनीता देवी (Sunita Devi)",
+        "relation": "Self",
+        "age": 34,
+        "gender": "Female",
+        "isPregnant": false,
+        "chronicConditions": [
+          "None"
+        ],
+        "currentMedications": [],
+        "avatar": "👩🏽"
       },
+      "doctor": {
+        "_id": "6afd6743b1f4e1819749f126",
+        "id": "doc-1",
+        "__v": 0,
+        "avatar": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80",
+        "councilName": "Gujarat Medical Council / NMC India",
+        "createdAt": "2026-11-18T08:52:18.772Z",
+        "experienceYears": 14,
+        "isAvailable": true,
+        "languages": [
+          "Hindi",
+          "Gujarati",
+          "English"
+        ],
+        "name": "रमेश पटेल (Dr. Ramesh Patel)",
+        "rating": 4.9,
+        "registrationNumber": "NMC/MCI-2018-84729",
+        "specialization": "General Physician & Telehealth Specialist",
+        "updatedAt": "2026-11-18T08:52:18.772Z"
+      },
+      "status": "QUEUED",
+      "triageSummary": null,
+      "queuePosition": 1,
+      "estimatedWaitMinutes": 3,
+      "scheduledAt": "2026-11-19T09:23:54.254Z",
+      "bandwidthMode": "ADAPTIVE",
       "chatMessages": [
         {
           "sender": "Dr. रमेश पटेल (Dr. Ramesh Patel)",
           "text": "Namaste! I am reviewing your AI triage summary. How are you feeling right now?",
-          "time": "07:32 pm"
+          "time": "02:53 pm",
+          "_id": "6afec02ad0b77e3d545e8c6b"
         }
-      ]
+      ],
+      "createdAt": "2026-11-19T09:23:54.682Z",
+      "updatedAt": "2026-11-19T09:23:54.682Z",
+      "__v": 0
     }
   },
   "prescriptions": {
-    "RC-2026-98124": {
-      "_id": "6afc4b98cf418befa6414e02",
-      "id": "RC-2026-98124",
-      "__v": 0,
-      "consultationId": "CONS-90182",
-      "createdAt": "Tue Nov 17 2026 18:12:00 GMT+0530 (India Standard Time)",
-      "diagnosis": "Acute Upper Respiratory Tract Infection (Mild Viral URI)",
-      "dispensed": false,
-      "doctorCouncil": "Gujarat Medical Council / NMC India",
-      "doctorName": "रमेश पटेल (Dr. Ramesh Patel)",
-      "doctorRegNo": "NMC/MCI-2018-84729",
-      "doctorSignatureDate": "17 Nov 2026",
-      "followUpDays": 3,
-      "generalAdvice": "Drink plenty of warm water, gargle with warm salt water twice daily, and get adequate rest.",
-      "isOfflineAvailable": true,
-      "medicines": [
-        {
-          "id": "m1",
-          "name": "Paracetamol",
-          "dosage": "500mg",
-          "frequency": "1-0-1 (Morning & Night)",
-          "durationDays": 3,
-          "timing": "After Food",
-          "_id": "6afc4b98fad4e3274c73568e"
-        },
-        {
-          "id": "m2",
-          "name": "Cetirizine",
-          "dosage": "10mg",
-          "frequency": "0-0-1 (Bedtime)",
-          "durationDays": 3,
-          "timing": "After Food",
-          "_id": "6afc4b98fad4e3274c73568f"
-        }
-      ],
-      "patientAge": 34,
-      "patientGender": "Female",
-      "patientName": "सुनीता देवी (Sunita Devi)",
-      "patientPhone": "9876543210",
-      "symptoms": [
-        "Mild fever",
-        "Dry cough",
-        "Throat irritation"
-      ],
-      "updatedAt": "2026-11-17T12:42:00.455Z",
-      "verificationQrData": "https://ruralcare.gov.in/verify/RC-2026-98124"
-    },
     "RC-2026-39336": {
-      "_id": "6afc5954cf418befa6414e0c",
+      "_id": "6afd6744b1f4e1819749f12d",
       "id": "RC-2026-39336",
       "__v": 0,
       "consultationId": "CONS-RAMESH-62",
-      "createdAt": "Tue Nov 17 2026 19:10:36 GMT+0530 (India Standard Time)",
+      "createdAt": "Wed Nov 18 2026 14:22:19 GMT+0530 (India Standard Time)",
       "diagnosis": "Hypertension Review & Medication Refill",
       "doctorCouncil": "Gujarat Medical Council / NMC India",
       "doctorName": "रमेश पटेल (Dr. Ramesh Patel)",
@@ -748,15 +529,15 @@
       "symptoms": [
         "Hypertension Review & Medication Refill"
       ],
-      "updatedAt": "2026-11-17T13:40:36.484Z",
+      "updatedAt": "2026-11-18T08:52:19.715Z",
       "verificationQrData": "https://ruralcare.gov.in/verify/RC-2026-39336"
     },
     "RC-2026-63674": {
-      "_id": "6afc5a01cf418befa6414e0d",
+      "_id": "6afd6744b1f4e1819749f12e",
       "id": "RC-2026-63674",
       "__v": 0,
       "consultationId": "CONS-RADHA-29",
-      "createdAt": "Tue Nov 17 2026 19:13:29 GMT+0530 (India Standard Time)",
+      "createdAt": "Wed Nov 18 2026 14:22:19 GMT+0530 (India Standard Time)",
       "diagnosis": "Antenatal Trimester 2 Routine Assessment",
       "doctorCouncil": "Gujarat Medical Council / NMC India",
       "doctorName": "रमेश पटेल (Dr. Ramesh Patel)",
@@ -822,24 +603,23 @@
       "symptoms": [
         "Antenatal Trimester 2 Routine Assessment"
       ],
-      "updatedAt": "2026-11-17T13:43:29.320Z",
+      "updatedAt": "2026-11-18T08:52:19.894Z",
       "verificationQrData": "https://ruralcare.gov.in/verify/RC-2026-63674"
     },
     "RC-2026-29751": {
+      "_id": "6afd6744b1f4e1819749f12f",
       "id": "RC-2026-29751",
+      "__v": 0,
       "consultationId": "CONS-AMAN-8",
-      "patientName": "Aman",
-      "patientAge": 8,
-      "patientGender": "Male",
-      "patientPhone": "9823041189",
+      "createdAt": "Wed Nov 18 2026 14:22:20 GMT+0530 (India Standard Time)",
+      "diagnosis": "Fever & Vomiting (2 days)",
+      "doctorCouncil": "Gujarat Medical Council / NMC India",
       "doctorName": "रमेश पटेल (Dr. Ramesh Patel)",
       "doctorRegNo": "NMC/MCI-2018-84729",
-      "doctorCouncil": "Gujarat Medical Council / NMC India",
       "doctorSignatureDate": "17 Nov 2026",
-      "diagnosis": "Fever & Vomiting (2 days)",
-      "symptoms": [
-        "Fever & Vomiting (2 days)"
-      ],
+      "followUpDays": 3,
+      "generalAdvice": "स्वच्छ उबला हुआ पानी ओ.आर.एस. (ORS) के साथ दें। चावल का मांड (कांजी) और मसला हुआ केला जारी रखें। 24 घंटे तक दूध या तली हुई चीजें न दें।",
+      "isOfflineAvailable": true,
       "medicines": [
         {
           "id": "med_ors",
@@ -850,7 +630,8 @@
           "durationDays": 3,
           "instructionEn": "Duration: 3 Days • Continue feeding normal liquid diet.",
           "instructionHi": "Duration: 3 Days • Continue feeding normal liquid diet.",
-          "instructionGu": "Duration: 3 Days • Continue feeding normal liquid diet."
+          "instructionGu": "Duration: 3 Days • Continue feeding normal liquid diet.",
+          "_id": "6afd674458808a3ea7c2dbc3"
         },
         {
           "id": "med_pcm",
@@ -861,7 +642,8 @@
           "durationDays": 3,
           "instructionEn": "Duration: 2 Days • Only if temp > 100°F. Maintain 6hr interval.",
           "instructionHi": "Duration: 2 Days • Only if temp > 100°F. Maintain 6hr interval.",
-          "instructionGu": "Duration: 2 Days • Only if temp > 100°F. Maintain 6hr interval."
+          "instructionGu": "Duration: 2 Days • Only if temp > 100°F. Maintain 6hr interval.",
+          "_id": "6afd674458808a3ea7c2dbc4"
         },
         {
           "id": "med_zinc",
@@ -872,7 +654,8 @@
           "durationDays": 3,
           "instructionEn": "Prevents diarrheal relapse and restores gut mucosal barrier.",
           "instructionHi": "Prevents diarrheal relapse and restores gut mucosal barrier.",
-          "instructionGu": "Prevents diarrheal relapse and restores gut mucosal barrier."
+          "instructionGu": "Prevents diarrheal relapse and restores gut mucosal barrier.",
+          "_id": "6afd674458808a3ea7c2dbc5"
         },
         {
           "id": "med_1794924246968",
@@ -883,86 +666,138 @@
           "durationDays": 3,
           "instructionEn": "Follow standard pediatric dosing guidelines.",
           "instructionHi": "Follow standard pediatric dosing guidelines.",
-          "instructionGu": "Follow standard pediatric dosing guidelines."
+          "instructionGu": "Follow standard pediatric dosing guidelines.",
+          "_id": "6afd674458808a3ea7c2dbc6"
         }
       ],
-      "generalAdvice": "स्वच्छ उबला हुआ पानी ओ.आर.एस. (ORS) के साथ दें। चावल का मांड (कांजी) और मसला हुआ केला जारी रखें। 24 घंटे तक दूध या तली हुई चीजें न दें।",
+      "patientAge": 8,
+      "patientGender": "Male",
+      "patientName": "Aman",
+      "patientPhone": "9823041189",
+      "symptoms": [
+        "Fever & Vomiting (2 days)"
+      ],
+      "updatedAt": "2026-11-18T08:52:20.013Z",
+      "verificationQrData": "https://ruralcare.gov.in/verify/RC-2026-29751"
+    },
+    "RC-2026-12313": {
+      "_id": "6afd67fdb1f4e1819749f13d",
+      "id": "RC-2026-12313",
+      "__v": 0,
+      "consultationId": "CONS-RAMESH-62",
+      "createdAt": "Wed Nov 18 2026 14:25:24 GMT+0530 (India Standard Time)",
+      "diagnosis": "Hypertension Review & Medication Refill",
+      "doctorCouncil": "Gujarat Medical Council / NMC India",
+      "doctorName": "रमेश पटेल (Dr. Ramesh Patel)",
+      "doctorRegNo": "NMC/MCI-2018-84729",
+      "doctorSignatureDate": "18 Nov 2026",
       "followUpDays": 3,
-      "verificationQrData": "https://ruralcare.gov.in/verify/RC-2026-29751",
+      "generalAdvice": "स्वच्छ उबला हुआ पानी ओ.आर.एस. (ORS) के साथ दें। चावल का मांड (कांजी) और मसला हुआ केला जारी रखें। 24 घंटे तक दूध या तली हुई चीजें न दें।",
       "isOfflineAvailable": true,
-      "createdAt": "2026-11-17T14:04:15.850Z"
+      "medicines": [
+        {
+          "id": "med_ors",
+          "name": "Oral Rehydration Salts (WHO Formula)",
+          "dosage": "Morn: 200ml",
+          "frequency": "Noon: 200ml",
+          "timing": "After Food",
+          "durationDays": 3,
+          "instructionEn": "Duration: 3 Days • Continue feeding normal liquid diet.",
+          "instructionHi": "Duration: 3 Days • Continue feeding normal liquid diet.",
+          "instructionGu": "Duration: 3 Days • Continue feeding normal liquid diet.",
+          "_id": "6afd67fccb5d93928f408fd3"
+        },
+        {
+          "id": "med_pcm",
+          "name": "Paracetamol Oral Susp 250mg / 5ml",
+          "dosage": "5 ml (SOS)",
+          "frequency": "Max 4x/day",
+          "timing": "After Food",
+          "durationDays": 3,
+          "instructionEn": "Duration: 2 Days • Only if temp > 100°F. Maintain 6hr interval.",
+          "instructionHi": "Duration: 2 Days • Only if temp > 100°F. Maintain 6hr interval.",
+          "instructionGu": "Duration: 2 Days • Only if temp > 100°F. Maintain 6hr interval.",
+          "_id": "6afd67fccb5d93928f408fd4"
+        },
+        {
+          "id": "med_zinc",
+          "name": "Zinc Gluconate Syr (20mg/day)",
+          "dosage": "5 ml Once Daily",
+          "frequency": "14 Days continuous",
+          "timing": "After Food",
+          "durationDays": 3,
+          "instructionEn": "Prevents diarrheal relapse and restores gut mucosal barrier.",
+          "instructionHi": "Prevents diarrheal relapse and restores gut mucosal barrier.",
+          "instructionGu": "Prevents diarrheal relapse and restores gut mucosal barrier.",
+          "_id": "6afd67fccb5d93928f408fd5"
+        }
+      ],
+      "patientAge": 62,
+      "patientGender": "Male",
+      "patientName": "Ramesh Patel",
+      "patientPhone": "9876543210",
+      "symptoms": [
+        "Hypertension Review & Medication Refill"
+      ],
+      "updatedAt": "2026-11-18T08:55:24.767Z",
+      "verificationQrData": "https://ruralcare.gov.in/verify/RC-2026-12313"
     }
   },
   "auditLogs": [
     {
-      "redFlagsDetected": [],
-      "reviewedByClinician": false,
-      "_id": "6afc4b98cf418befa6414e07",
+      "_id": "6afd6745b1f4e1819749f134",
       "id": "AUD-891",
       "__v": 0,
       "aiTriageLevel": "EMERGENCY",
-      "createdAt": "2026-11-17T12:42:00.492Z",
-      "reviewedByAuditor": false,
-      "timestamp": "2026-11-09 11:42",
-      "updatedAt": "2026-11-17T12:42:00.492Z"
-    },
-    {
+      "createdAt": "2026-11-18T08:52:21.132Z",
       "redFlagsDetected": [],
       "reviewedByClinician": false,
-      "_id": "6afc4b98cf418befa6414e08",
+      "timestamp": "2026-11-09 11:42",
+      "updatedAt": "2026-11-18T08:52:21.132Z"
+    },
+    {
+      "_id": "6afd6745b1f4e1819749f135",
       "id": "AUD-890",
       "__v": 0,
       "aiTriageLevel": "CONSULT_SOON",
-      "createdAt": "2026-11-17T12:42:00.495Z",
-      "reviewedByAuditor": false,
+      "createdAt": "2026-11-18T08:52:21.285Z",
+      "redFlagsDetected": [],
+      "reviewedByClinician": false,
       "timestamp": "2026-11-09 11:15",
-      "updatedAt": "2026-11-17T12:42:00.495Z"
+      "updatedAt": "2026-11-18T08:52:21.285Z"
     }
   ],
   "facilities": [
     {
-      "_id": "6afc4b98cf418befa6414e09",
+      "_id": "6afd6745b1f4e1819749f136",
       "id": "fac-1",
       "__v": 0,
-      "availableBeds": 10,
-      "createdAt": "2026-11-17T12:42:00.501Z",
-      "hasBloodBank": false,
-      "hasOxygen": true,
-      "is24x7": true,
+      "createdAt": "2026-11-18T08:52:21.493Z",
       "name": "Government Community Health Centre (CHC)",
       "type": "Community Hospital (24x7 Emergency)",
-      "updatedAt": "2026-11-17T12:42:00.501Z"
+      "updatedAt": "2026-11-18T08:52:21.493Z"
     },
     {
-      "_id": "6afc4b98cf418befa6414e0a",
+      "_id": "6afd6745b1f4e1819749f137",
       "id": "fac-2",
       "__v": 0,
-      "availableBeds": 10,
-      "createdAt": "2026-11-17T12:42:00.511Z",
-      "hasBloodBank": false,
-      "hasOxygen": true,
-      "is24x7": true,
+      "createdAt": "2026-11-18T08:52:21.604Z",
       "name": "Primary Health Centre (PHC)",
       "type": "Primary Care & Immunization",
-      "updatedAt": "2026-11-17T12:42:00.511Z"
+      "updatedAt": "2026-11-18T08:52:21.604Z"
     },
     {
-      "_id": "6afc4b98cf418befa6414e0b",
+      "_id": "6afd6746b1f4e1819749f138",
       "id": "fac-3",
       "__v": 0,
-      "availableBeds": 10,
-      "createdAt": "2026-11-17T12:42:00.514Z",
-      "hasBloodBank": false,
-      "hasOxygen": true,
-      "is24x7": true,
+      "createdAt": "2026-11-18T08:52:21.742Z",
       "name": "District Civil Hospital",
       "type": "Tertiary Care & Specialist Referral",
-      "updatedAt": "2026-11-17T12:42:00.514Z"
+      "updatedAt": "2026-11-18T08:52:21.742Z"
     }
   ],
   "activeQueue": [
-    "CONS-RAMESH-62",
-    "CONS-RADHA-29"
+    "CONS-234254"
   ],
   "vitals": {
     "9876543210": [
@@ -1017,18 +852,17 @@
   },
   "referrals": {
     "REF-7891": {
-      "investigationsRequested": [],
-      "_id": "6afc4b98cf418befa6414e06",
+      "_id": "6afd6745b1f4e1819749f133",
       "id": "REF-7891",
       "__v": 0,
       "consultationId": "CONS-90182",
-      "createdAt": "2026-11-17T12:42:00.485Z",
-      "date": "2026-11-17T12:42:00.486Z",
+      "createdAt": "2026-11-18T08:52:20.814Z",
       "doctorRegNo": "NMC/MCI-2018-84729",
+      "investigationsRequested": [],
+      "issuedAt": "2026-11-17T14:02:27.867Z",
       "patientName": "रमेश पटेल (Ramesh Patel)",
-      "updatedAt": "2026-11-17T12:42:00.485Z",
-      "issuedAt": "2026-11-17T14:02:27.867Z"
+      "updatedAt": "2026-11-18T08:52:20.814Z"
     }
   },
-  "lastSaved": "2026-11-17T14:04:16.491Z"
+  "lastSaved": "2026-11-19T09:24:10.193Z"
 }

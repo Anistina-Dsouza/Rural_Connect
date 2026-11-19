@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Language } from '../types';
 import { translations } from '../data/translations';
 import { NEARBY_RURAL_FACILITIES } from '../data/clinicalLibrary';
+import { ApiService } from '../services/api';
 import { 
   PhoneCall, 
   AlertOctagon, 
@@ -25,6 +26,17 @@ export const EmergencyScreen: React.FC<EmergencyScreenProps> = ({
   onBackToNormal
 }) => {
   const t = translations[currentLanguage];
+  const [facilities, setFacilities] = useState<any[]>(NEARBY_RURAL_FACILITIES);
+
+  useEffect(() => {
+    ApiService.getNearbyFacilities()
+      .then((res: any) => {
+        if (res && res.facilities && res.facilities.length > 0) {
+          setFacilities(res.facilities);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleCall108 = () => {
     window.location.href = 'tel:108';
@@ -190,7 +202,7 @@ export const EmergencyScreen: React.FC<EmergencyScreenProps> = ({
         </div>
 
         <div className="space-y-3">
-          {NEARBY_RURAL_FACILITIES.map((facility, idx) => (
+          {facilities.map((facility, idx) => (
             <div
               key={idx}
               className="border border-slate-200 hover:border-emerald-300 rounded-xl p-4 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition"

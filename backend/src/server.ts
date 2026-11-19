@@ -51,6 +51,9 @@ connectDB().then(() => {
       console.error('[Server Error]', err);
     }
   });
+}).catch((error: unknown) => {
+  console.error('[Server] Startup aborted:', (error as Error).message);
+  process.exitCode = 1;
 });
 
 export default app;

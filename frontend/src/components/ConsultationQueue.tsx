@@ -115,14 +115,15 @@ export const ConsultationQueue: React.FC<ConsultationQueueProps> = ({
   useEffect(() => {
     if (isDoctorReady && lastAnnouncedStatus !== 'READY') {
       setLastAnnouncedStatus('READY');
+      const docName = assignedDoctor.name || 'डॉक्टर';
       const phrase = currentLanguage === 'gu'
-        ? 'ડોક્ટર રમેશ પટેલ તમારી સાથે જોડાઈ ગયા છે. કૃપા કરીને વિડીયો રૂમમાં પ્રવેશ કરો.'
+        ? `${docName} તમારી સાથે જોડાઈ ગયા છે. કૃપા કરીને વિડીયો રૂમમાં પ્રવેશ કરો.`
         : currentLanguage === 'hi'
-        ? 'डॉक्टर रमेश पटेल आपसे जुड़ चुके हैं। कृपया वीडियो परामर्श कक्ष में प्रवेश करें।'
-        : 'Doctor Ramesh Patel is ready for your consultation. Please enter the video room now.';
+        ? `${docName} आपसे जुड़ चुके हैं। कृपया वीडियो परामर्श कक्ष में प्रवेश करें।`
+        : `${assignedDoctor.name} is ready for your consultation. Please enter the video room now.`;
       speakStatus(phrase);
     }
-  }, [isDoctorReady, currentLanguage]);
+  }, [isDoctorReady, currentLanguage, assignedDoctor.name]);
 
   const handleHearStatus = () => {
     const phrase = currentLanguage === 'gu'
@@ -155,10 +156,10 @@ export const ConsultationQueue: React.FC<ConsultationQueueProps> = ({
             <div>
               <h3 className="font-bold text-sm sm:text-base">
                 {currentLanguage === 'hi' 
-                  ? 'डॉक्टर रमेश पटेल आपसे जुड़ चुके हैं!' 
+                  ? `${assignedDoctor.name || 'डॉक्टर'} आपसे जुड़ चुके हैं!` 
                   : currentLanguage === 'gu'
-                  ? 'ડોક્ટર રમેશ પટેલ તમારી સાથે જોડાઈ ગયા છે!'
-                  : 'Doctor is ready in the consult room!'}
+                  ? `${assignedDoctor.name || 'ડોક્ટર'} તમારી સાથે જોડાઈ ગયા છે!`
+                  : `${assignedDoctor.name || 'Doctor'} is ready in the consult room!`}
               </h3>
               <p className="text-xs text-emerald-100">
                 {currentLanguage === 'hi' ? 'कृपया तुरंत वीडियो कक्ष में प्रवेश करें।' : 'Click the button below to join consultation.'}

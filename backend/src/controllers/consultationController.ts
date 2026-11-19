@@ -1,7 +1,10 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { store } from '../store.js';
 import { IConsultation, IReferralNote } from '../models/types.js';
-import { ZoomService } from '../services/zoomService.js';
+import { AgoraService } from '../services/agoraService.js';
+import { ConsultationModel } from '../models/schemas.js';
+import { AuthRequest } from '../middleware/authMiddleware.js';
 
 // --- FR-4.1: Join Virtual Waiting Room Queue ---
 export const joinQueue = async (req: Request, res: Response) => {
@@ -16,13 +19,7 @@ export const joinQueue = async (req: Request, res: Response) => {
 
   const profile = patientProfile || (store.profiles.get(patientPhoneNumber) || [])[0];
 
-  // Generate Zoom Teleconsultation Meeting
-  const zoomMeeting = await ZoomService.createMeeting(
-    `RuralCare Telemedicine: ${profile?.name || 'Patient'}`,
-    30
-  );
-
-  const newConsultation: IConsultation = {
+  const consultation: IConsultation = {
     id: consultationId,
     patientPhoneNumber,
     patientProfile: profile,
@@ -33,7 +30,6 @@ export const joinQueue = async (req: Request, res: Response) => {
     estimatedWaitMinutes: estimatedWait,
     scheduledAt: new Date().toISOString(),
     bandwidthMode,
-    zoomMeeting,
     chatMessages: [
       {
         sender: `Dr. ${doctor.name}`,
@@ -43,29 +39,48 @@ export const joinQueue = async (req: Request, res: Response) => {
     ]
   };
 
-  store.consultations.set(consultationId, newConsultation);
+  if (mongoose.connection.readyState === 1) {
+    try {
+      await ConsultationModel.create(consultation);
+    } catch (error) {
+      console.error('[DB] Failed to save consultation:', (error as Error).name);
+      return res.status(500).json({ success: false, message: 'Unable to save consultation to MongoDB' });
+    }
+  }
+
+  store.consultations.set(consultationId, consultation);
   store.activeQueue.push(consultationId);
-  store.saveItem('consultation', newConsultation);
+  if (mongoose.connection.readyState !== 1) {
+    await store.saveItem('consultation', consultation);
+  }
 
   return res.json({
     success: true,
-    consultation: newConsultation
+    consultation
   });
 };
 
 // --- FR-4.1: Poll Live Queue Position & Wait Time ---
-export const getQueueStatus = (req: Request, res: Response) => {
+export const getQueueStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const consult = store.consultations.get(id);
-
-  if (!consult) {
-    // If not found, return first active consultation or a valid default
-    const firstActive = store.consultations.values().next().value;
-    if (firstActive) {
-      return res.json({ success: true, consultation: firstActive });
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const dbConsult = await ConsultationModel.findOne({ id }).lean();
+      if (dbConsult) {
+        store.consultations.set(id, dbConsult as unknown as IConsultation);
+        if (['QUEUED', 'IN_CALL'].includes(dbConsult.status) && !store.activeQueue.includes(id)) {
+          store.activeQueue.push(id);
+        }
+        return res.json({ success: true, consultation: dbConsult });
+      }
+    } catch (error) {
+      console.error('[DB] Failed to load consultation:', (error as Error).name);
+      return res.status(500).json({ success: false, message: 'Unable to load consultation from MongoDB' });
     }
-    return res.status(404).json({ success: false, message: 'Consultation session not found' });
   }
+
+  const consult = store.consultations.get(id);
+  if (!consult) return res.status(404).json({ success: false, message: 'Consultation session not found' });
 
   // Find index in queue
   const idx = store.activeQueue.indexOf(id);
@@ -80,25 +95,66 @@ export const getQueueStatus = (req: Request, res: Response) => {
   });
 };
 
-export const getZoomMeeting = async (req: Request, res: Response) => {
+export const getAgoraCallCredentials = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const consult = store.consultations.get(id);
+  let consult: IConsultation | undefined;
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const dbConsult = await ConsultationModel.findOne({ id }).lean();
+      if (dbConsult) {
+        consult = dbConsult as unknown as IConsultation;
+        store.consultations.set(id, consult);
+      }
+    } catch (error) {
+      console.error('[Agora] Failed to load consultation:', (error as Error).name);
+      return res.status(500).json({ success: false, message: 'Unable to load consultation' });
+    }
+  } else {
+    consult = store.consultations.get(id);
+  }
+
   if (!consult) {
     return res.status(404).json({ success: false, message: 'Consultation not found' });
   }
 
-  if (!consult.zoomMeeting) {
-    consult.zoomMeeting = await ZoomService.createMeeting(
-      `RuralCare Telemedicine: ${consult.patientProfile?.name || 'Patient'}`,
-      30
-    );
-    store.saveItem('consultation', consult);
+  if (consult.status !== 'IN_CALL') {
+    return res.status(409).json({ success: false, message: 'Consultation is not active yet' });
   }
 
-  return res.json({
-    success: true,
-    zoomMeeting: consult.zoomMeeting
-  });
+  const { user } = req as AuthRequest;
+  if (!user || (user.role !== 'PATIENT' && user.role !== 'DOCTOR')) {
+    return res.status(403).json({ success: false, message: 'Only consultation participants can join' });
+  }
+
+  const normalizePhone = (phone?: string) => phone?.replace(/\D/g, '').slice(-10);
+  let isAuthorizedParticipant = false;
+
+  if (user.role === 'PATIENT') {
+    const userPhone = normalizePhone(user.phoneNumber);
+    isAuthorizedParticipant = Boolean(userPhone && userPhone === normalizePhone(consult.patientPhoneNumber));
+  } else {
+    isAuthorizedParticipant =
+      consult.doctor.userId === user.id ||
+      consult.doctor.id === user.id ||
+      (!!user.name && consult.doctor.name === user.name) ||
+      (!!user.registrationNumber && consult.doctor.registrationNumber === user.registrationNumber);
+  }
+
+  if (!isAuthorizedParticipant) {
+    return res.status(403).json({ success: false, message: 'You are not assigned to this consultation' });
+  }
+
+  if (!AgoraService.isConfigured()) {
+    return res.status(503).json({ success: false, message: 'Agora is not configured on the server' });
+  }
+
+  try {
+    const credentials = AgoraService.createCallCredentials(id, user.role);
+    return res.json({ success: true, credentials });
+  } catch (error) {
+    console.error('[Agora] Failed to create call token:', error);
+    return res.status(500).json({ success: false, message: 'Unable to create Agora call token' });
+  }
 };
 
 
@@ -234,9 +290,24 @@ export const getReferralNote = (req: Request, res: Response) => {
 };
 
 // --- FR-4.6: End Consultation Session ---
-export const endConsultation = (req: Request, res: Response) => {
+export const endConsultation = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const consult = store.consultations.get(id);
+  let consult = store.consultations.get(id);
+
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const dbConsult = await ConsultationModel.findOneAndUpdate(
+        { id },
+        { $set: { status: 'COMPLETED', endedAt: new Date().toISOString() } },
+        { new: true, runValidators: true }
+      ).lean();
+      if (!dbConsult) return res.status(404).json({ success: false, message: 'Consultation not found' });
+      consult = dbConsult as unknown as IConsultation;
+    } catch (error) {
+      console.error('[DB] Failed to end consultation:', (error as Error).name);
+      return res.status(500).json({ success: false, message: 'Unable to update consultation in MongoDB' });
+    }
+  }
 
   if (consult) {
     consult.status = 'COMPLETED';
@@ -246,7 +317,9 @@ export const endConsultation = (req: Request, res: Response) => {
     }
   }
 
-  store.saveItem('consultation', consult);
+  if (consult && mongoose.connection.readyState !== 1) {
+    await store.saveItem('consultation', consult);
+  }
 
   return res.json({
     success: true,
@@ -254,7 +327,32 @@ export const endConsultation = (req: Request, res: Response) => {
   });
 };
 
-export const getAllQueue = (req: Request, res: Response) => {
+export const getAllQueue = async (req: Request, res: Response) => {
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const dbConsultations = await ConsultationModel
+        .find({ status: { $in: ['QUEUED', 'IN_CALL'] } })
+        .sort({ scheduledAt: 1 })
+        .limit(100)
+        .lean();
+
+      store.activeQueue = dbConsultations.map((consultation) => consultation.id);
+      for (const consultation of dbConsultations) {
+        store.consultations.set(consultation.id, consultation as unknown as IConsultation);
+      }
+
+      const queue = dbConsultations.map((consultation, index) => ({
+        ...consultation,
+        queuePosition: index + 1,
+        estimatedWaitMinutes: index * 4
+      }));
+      return res.json({ success: true, queue, totalWaiting: queue.length });
+    } catch (error) {
+      console.error('[DB] Failed to load consultation queue:', (error as Error).name);
+      return res.status(500).json({ success: false, message: 'Unable to load queue from MongoDB' });
+    }
+  }
+
   let queueConsultations = store.activeQueue
     .map((id, index) => {
       const consult = store.consultations.get(id);
@@ -278,6 +376,33 @@ export const getAllQueue = (req: Request, res: Response) => {
       }));
   }
 
+  // If still empty, fetch from MongoDB Atlas
+  if (queueConsultations.length === 0) {
+    try {
+      const dbConsultations = await ConsultationModel
+        .find({ status: { $in: ['QUEUED', 'IN_CALL'] } })
+        .sort({ scheduledAt: -1 })
+        .limit(20)
+        .lean();
+
+      queueConsultations = dbConsultations.map((c, idx) => {
+        const consultation = c as unknown as IConsultation;
+        // Sync to in-memory store
+        store.consultations.set(consultation.id, consultation);
+        if (!store.activeQueue.includes(consultation.id)) {
+          store.activeQueue.push(consultation.id);
+        }
+        return {
+          ...consultation,
+          queuePosition: idx + 1,
+          estimatedWaitMinutes: idx * 4
+        };
+      });
+    } catch (dbErr) {
+      console.warn('[DB] getAllQueue MongoDB note:', dbErr);
+    }
+  }
+
   return res.json({
     success: true,
     queue: queueConsultations,
@@ -285,11 +410,36 @@ export const getAllQueue = (req: Request, res: Response) => {
   });
 };
 
-export const updateConsultationStatus = (req: Request, res: Response) => {
+export const updateConsultationStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  const consult = store.consultations.get(id);
+  const validStatuses: IConsultation['status'][] = ['QUEUED', 'IN_CALL', 'COMPLETED', 'CANCELLED', 'REFERRED_IN_PERSON'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ success: false, message: 'Invalid consultation status' });
+  }
+
+  let consult = store.consultations.get(id);
+  if (mongoose.connection.readyState === 1) {
+    const update: Partial<IConsultation> = { status };
+    if (status === 'IN_CALL' && !consult?.startedAt) update.startedAt = new Date().toISOString();
+    if (status === 'COMPLETED' || status === 'REFERRED_IN_PERSON' || status === 'CANCELLED') {
+      update.endedAt = new Date().toISOString();
+    }
+    try {
+      const dbConsult = await ConsultationModel.findOneAndUpdate(
+        { id },
+        { $set: update },
+        { new: true, runValidators: true }
+      ).lean();
+      if (!dbConsult) return res.status(404).json({ success: false, message: 'Consultation not found' });
+      consult = dbConsult as unknown as IConsultation;
+    } catch (error) {
+      console.error('[DB] Failed to update consultation status:', (error as Error).name);
+      return res.status(500).json({ success: false, message: 'Unable to update consultation in MongoDB' });
+    }
+  }
+
   if (!consult) {
     return res.status(404).json({ success: false, message: 'Consultation not found' });
   }
@@ -305,13 +455,13 @@ export const updateConsultationStatus = (req: Request, res: Response) => {
     }
   }
 
-  store.saveItem('consultation', consult);
+  store.consultations.set(id, consult);
+  if (mongoose.connection.readyState !== 1) {
+    await store.saveItem('consultation', consult);
+  }
 
   return res.json({
     success: true,
     consultation: consult
   });
 };
-
-
-

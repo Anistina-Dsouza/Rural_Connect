@@ -99,13 +99,6 @@ export const ConsultationSchema = new Schema<IConsultationDoc>({
   bandwidthMode:          { type: String, default: 'ADAPTIVE' },
   prescriptionId:         { type: String },
   referralNote:           { type: String },
-  zoomMeeting: {
-    meetingId: { type: String },
-    joinUrl:   { type: String },
-    startUrl:  { type: String },
-    password:  { type: String },
-    topic:     { type: String }
-  },
   chatMessages: [{
     sender: { type: String },
     text:   { type: String },

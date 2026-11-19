@@ -5,6 +5,8 @@ import { ApiService } from '../services/api';
 import { generatePrescriptionPdf } from '../utils/pdfGenerator';
 import { Prescription } from '../types';
 import { getDoctorSession, setDoctorSession } from '../services/auth';
+import { AgoraVideoPlayer } from '../components/AgoraVideoPlayer';
+import { useAgoraCall } from '../hooks/useAgoraCall';
 
 interface QueuePatient {
   id: string;
@@ -27,7 +29,7 @@ interface QueuePatient {
 export default function DoctorDashboard() {
   const navigate = useNavigate();
 
-  // ── Doctor identity (resolved from backend /auth/me → localStorage fallback) ──
+  // ── Doctor identity ──
   const [doctorProfile, setDoctorProfile] = useState<{
     name: string; regNo: string; phone: string; specialty: string;
   }>(() => {
@@ -47,7 +49,6 @@ export default function DoctorDashboard() {
         const meRes = await ApiService.getMe();
         if (meRes?.success && meRes.user) {
           const { name, phoneNumber } = meRes.user;
-          // Try to find matching doctor record for reg number
           const doctorsRes = await ApiService.getDoctors();
           const matched = (doctorsRes?.doctors as any[])?.find(
             (d: any) => d.phoneNumber === phoneNumber || d.phone === phoneNumber
@@ -76,17 +77,17 @@ export default function DoctorDashboard() {
       // Non-critical — UI state updated regardless
     }
   };
-  const [activePatientId, setActivePatientId] = useState('CONS-AMAN-8');
+  const [activePatientId, setActivePatientId] = useState('');
   const [queueFilter, setQueueFilter] = useState<'all' | 'asha' | 'review'>('all');
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [workingDiagnosis, setWorkingDiagnosis] = useState('Acute Viral Gastroenteritis with Mild Dehydration');
+  const [workingDiagnosis, setWorkingDiagnosis] = useState('Acute Clinical Evaluation');
   const [adviceLang, setAdviceLang] = useState<'EN' | 'HI'>('HI');
   const [adviceText, setAdviceText] = useState(
-    'स्वच्छ उबला हुआ पानी ओ.आर.एस. (ORS) के साथ दें। चावल का मांड (कांजी) और मसला हुआ केला जारी रखें। 24 घंटे तक दूध या तली हुई चीजें न दें।'
+    'स्वच्छ उबला हुआ पानी पिएं, पर्याप्त आराम करें और समय पर दवाएं लें।'
   );
   const [phcReferralTrigger, setPhcReferralTrigger] = useState(true);
   const [isSigned, setIsSigned] = useState(false);
   const [rxSuccessMsg, setRxSuccessMsg] = useState('');
+  const [actionError, setActionError] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastPrescription, setLastPrescription] = useState<Prescription | null>(null);
   const [activeTab, setActiveTab] = useState<'summary' | 'chat'>('summary');
@@ -100,6 +101,9 @@ export default function DoctorDashboard() {
   // Dynamic Queue state
   const [queue, setQueue] = useState<QueuePatient[]>([]);
   const [activeConsultation, setActiveConsultation] = useState<any>(null);
+  const agora = useAgoraCall(
+    activeConsultation?.status === 'IN_CALL' ? activePatientId : ''
+  );
 
   // Fetch queue from backend
   const fetchLiveQueue = async () => {
@@ -130,7 +134,7 @@ export default function DoctorDashboard() {
               : 'bg-primary-fixed-dim',
             waitText: isFirst ? 'Live Now' : `Wait: ${idx * 4}m`,
             ashaWorker: profile.relation === 'Child' ? 'Sunita (ASHA)' : 'Meena (ASHA)',
-            healthCenter: 'Barwani Sub-centre, MP',
+            healthCenter: c.healthCenter || c.facility || 'Rural Sub-centre, Health Post',
             temp: triage.doctorCaseSummary?.vitalsNotes?.includes('102') ? '102.1 °F' : '98.6 °F',
             episodes: triage.doctorCaseSummary?.vitalsNotes?.includes('BP') ? 'BP 142/88' : '3 Episodes',
             rawConsultation: c,
@@ -144,13 +148,24 @@ export default function DoctorDashboard() {
         if (currentActive) {
           setActivePatientId(currentActive.id);
           setActiveConsultation(currentActive.rawConsultation);
-          if (currentActive.rawConsultation?.triageSummary?.doctorCaseSummary?.recommendedAction) {
+          if (currentActive.rawConsultation?.triageSummary?.primaryComplaint) {
             setWorkingDiagnosis(currentActive.rawConsultation.triageSummary.primaryComplaint);
           }
+          if (currentActive.rawConsultation?.triageSummary?.approvedInterimAdvice?.[0]) {
+            setAdviceText(currentActive.rawConsultation.triageSummary.approvedInterimAdvice[0]);
+          }
         }
+      } else {
+        // No patients in queue – clear state
+        setQueue([]);
+        setActivePatientId('');
+        setActiveConsultation(null);
+        setWorkingDiagnosis('Acute Clinical Evaluation');
+        setAdviceText('स्वच्छ उबला हुआ पानी पिएं, पर्याप्त आराम करें और समय पर दवाएं लें।');
       }
     } catch (err) {
-      console.warn('Backend queue sync fallback active:', err);
+      console.error('Unable to load consultation queue:', err);
+      setActionError(err instanceof Error ? err.message : 'Unable to load the patient queue.');
     }
   };
 
@@ -158,38 +173,14 @@ export default function DoctorDashboard() {
     fetchLiveQueue();
     const interval = setInterval(fetchLiveQueue, 8000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePatientId]);
 
   // Active Patient Object
   const activePatient = queue.find((p) => p.id === activePatientId) || queue[0];
 
-  // Prescribed Meds
-  const [prescribedMeds, setPrescribedMeds] = useState([
-    {
-      id: 'med_ors',
-      name: 'Oral Rehydration Salts (WHO Formula)',
-      icon: 'water_drop',
-      iconColor: 'text-primary',
-      schedule: ['Morn: 200ml', 'Noon: 200ml', 'Eve: 200ml', 'Post loose stool'],
-      instructions: 'Duration: 3 Days • Continue feeding normal liquid diet.',
-    },
-    {
-      id: 'med_pcm',
-      name: 'Paracetamol Oral Susp 250mg / 5ml',
-      icon: 'medication',
-      iconColor: 'text-secondary',
-      schedule: ['5 ml (SOS)', 'Max 4x/day', 'After feed'],
-      instructions: 'Duration: 2 Days • Only if temp > 100°F. Maintain 6hr interval.',
-    },
-    {
-      id: 'med_zinc',
-      name: 'Zinc Gluconate Syr (20mg/day)',
-      icon: 'science',
-      iconColor: 'text-primary',
-      schedule: ['5 ml Once Daily', '14 Days continuous'],
-      instructions: 'Prevents diarrheal relapse and restores gut mucosal barrier.',
-    },
-  ]);
+  // Prescribed Meds state (starts empty - doctor adds real medicines)
+  const [prescribedMeds, setPrescribedMeds] = useState<any[]>([]);
 
   const addQuickMed = (medName: string, defaultDose: string) => {
     const newMed = {
@@ -197,14 +188,14 @@ export default function DoctorDashboard() {
       name: medName,
       icon: 'medication',
       iconColor: 'text-primary',
-      schedule: [defaultDose, '1-2 Days'],
-      instructions: 'Follow standard pediatric dosing guidelines.',
+      schedule: [defaultDose, '3 Days'],
+      instructions: 'Take strictly as per medical officer directions.',
     };
-    setPrescribedMeds([...prescribedMeds, newMed]);
+    setPrescribedMeds(prev => [...prev, newMed]);
   };
 
   const removeMed = (id: string) => {
-    setPrescribedMeds(prescribedMeds.filter((m) => m.id !== id));
+    setPrescribedMeds(prev => prev.filter((m) => m.id !== id));
   };
 
   const toggleAdviceLang = (lang: 'EN' | 'HI') => {
@@ -222,12 +213,22 @@ export default function DoctorDashboard() {
 
   // Sign & Dispatch Real Prescription to Backend & Generate Official PDF
   const handleSignAndDispatch = async () => {
+    if (!activePatientId || !activeConsultation) {
+      setActionError('Select a patient consultation before issuing a prescription.');
+      return;
+    }
+    if (activeConsultation.status !== 'IN_CALL') {
+      setActionError('Start the video consultation before issuing a prescription.');
+      return;
+    }
+
+    setActionError('');
     setLoading(true);
     try {
-      const patientPhone = activeConsultation?.patientPhoneNumber || '9823041189';
-      const patientName = activePatient?.name || 'Aman';
-      const patientAge = activePatient?.age || 8;
-      const patientGender = activePatient?.gender === 'M' ? 'Male' : 'Female';
+      const patientPhone = activeConsultation?.patientPhoneNumber || activePatient?.rawConsultation?.patientPhoneNumber || '';
+      const patientName = activePatient?.name || activeConsultation?.patientProfile?.name || 'Patient';
+      const patientAge = activePatient?.age || activeConsultation?.patientProfile?.age || 28;
+      const patientGender = activePatient?.gender === 'F' ? 'Female' : 'Male';
 
       const prescriptionPayload = {
         consultationId: activePatientId,
@@ -253,31 +254,15 @@ export default function DoctorDashboard() {
       };
 
       const res = await ApiService.createPrescription(prescriptionPayload);
+      if (!res.success || !res.prescription?.id) {
+        throw new Error(res.message || 'The prescription was not saved.');
+      }
       setIsSigned(true);
 
-      const rxId = res?.prescription?.id || `RC-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+      const rxId = res.prescription.id;
 
       // Construct complete compliant prescription for instant PDF generation
-      const fullPrescription: Prescription = {
-        id: rxId,
-        consultationId: activePatientId,
-        patientName,
-        patientAge,
-        patientGender,
-        patientPhone,
-        doctorName: doctorProfile.name.replace(/^Dr\.\s*/i, ''),
-        doctorRegNo: doctorProfile.regNo,
-        doctorCouncil: 'Gujarat Medical Council / NMC India',
-        doctorSignatureDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-        diagnosis: workingDiagnosis,
-        symptoms: [activePatient?.complaint || 'Acute Illness'],
-        medicines: prescriptionPayload.medicines,
-        generalAdvice: adviceText,
-        followUpDays: 3,
-        verificationQrData: `https://ruralcare.gov.in/verify/${rxId}`,
-        isOfflineAvailable: true,
-        createdAt: new Date().toISOString()
-      };
+      const fullPrescription: Prescription = res.prescription;
 
       setLastPrescription(fullPrescription);
 
@@ -285,61 +270,21 @@ export default function DoctorDashboard() {
       try {
         await generatePrescriptionPdf(fullPrescription);
       } catch (pdfErr) {
-        console.warn('Auto PDF generation note:', pdfErr);
+        console.error('Prescription saved, but PDF generation failed:', pdfErr);
+        setActionError('Prescription was saved, but the PDF could not be generated.');
       }
 
       setRxSuccessMsg(
-        `✓ Digital Prescription ${rxId} digitally signed & PDF generated! Dispatched to ${patientName} (+91 ${patientPhone})`
+        `✓ Digital Prescription ${rxId} was saved and is available to ${fullPrescription.patientName}.`
       );
+      setTimeout(() => setRxSuccessMsg(''), 9000);
 
-      // Conclude consultation status
-      await ApiService.updateConsultationStatus(activePatientId, 'COMPLETED');
       await fetchLiveQueue();
     } catch (err) {
-      setIsSigned(true);
-      const fallbackRx: Prescription = {
-        id: `RC-2026-${Math.floor(10000 + Math.random() * 90000)}`,
-        consultationId: activePatientId,
-        patientName: activePatient?.name || 'Patient',
-        patientAge: activePatient?.age || 25,
-        patientGender: 'Male',
-        patientPhone: '9823041189',
-        doctorName: doctorProfile.name.replace(/^Dr\.\s*/i, ''),
-        doctorRegNo: doctorProfile.regNo,
-        doctorCouncil: 'Gujarat Medical Council / NMC India',
-        doctorSignatureDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-        diagnosis: workingDiagnosis,
-        symptoms: ['Acute Illness'],
-        medicines: prescribedMeds.map((m) => ({
-          id: m.id,
-          name: m.name,
-          dosage: m.schedule[0] || 'Standard Dose',
-          frequency: m.schedule[1] || '1-0-1',
-          timing: 'After Food' as const,
-          durationDays: 3,
-          instructionEn: m.instructions,
-          instructionHi: m.instructions,
-          instructionGu: m.instructions,
-        })),
-        generalAdvice: adviceText,
-        followUpDays: 3,
-        verificationQrData: `https://ruralcare.gov.in/verify/RC-2026-98124`,
-        isOfflineAvailable: true,
-        createdAt: new Date().toISOString()
-      };
-      setLastPrescription(fallbackRx);
-      try {
-        await generatePrescriptionPdf(fallbackRx);
-      } catch (e) {}
-
-      setRxSuccessMsg(
-        `✓ Digital Prescription ${fallbackRx.id} generated & PDF downloaded!`
-      );
+      console.error('Prescription issue failed:', err);
+      setActionError(err instanceof Error ? err.message : 'Prescription was not saved. Please try again.');
     } finally {
       setLoading(false);
-      setTimeout(() => {
-        setRxSuccessMsg('');
-      }, 9000);
     }
   };
 
@@ -347,17 +292,12 @@ export default function DoctorDashboard() {
     setLoading(true);
     try {
       await ApiService.updateConsultationStatus(patientId, 'IN_CALL');
-      const zoomRes = await ApiService.getZoomMeeting(patientId);
-      if (zoomRes && zoomRes.zoomMeeting) {
-        setActiveConsultation((prev: any) => ({
-          ...prev,
-          status: 'IN_CALL',
-          zoomMeeting: zoomRes.zoomMeeting
-        }));
-      }
+      setActiveConsultation((prev: any) => ({ ...prev, status: 'IN_CALL' }));
+      setActionError('');
       await fetchLiveQueue();
     } catch (e) {
-      console.warn('Start consultation note:', e);
+      console.error('Unable to admit patient to consultation:', e);
+      setActionError(e instanceof Error ? e.message : 'Could not start the consultation.');
     } finally {
       setLoading(false);
     }
@@ -367,9 +307,11 @@ export default function DoctorDashboard() {
     if (confirm('Are you sure you want to conclude this teleconsultation?')) {
       try {
         await ApiService.endConsultation(activePatientId);
+        setActionError('');
         await fetchLiveQueue();
-      } catch (e) {
-        alert('Consultation ended.');
+      } catch (error) {
+        console.error('Unable to end consultation:', error);
+        setActionError(error instanceof Error ? error.message : 'Could not end the consultation.');
       }
     }
   };
@@ -377,8 +319,22 @@ export default function DoctorDashboard() {
   const handleSelectPatient = async (patient: QueuePatient) => {
     setActivePatientId(patient.id);
     setActiveConsultation(patient.rawConsultation);
+    setPrescribedMeds([]);
+    setLastPrescription(null);
+    setIsSigned(false);
+    setRxSuccessMsg('');
+    setActionError('');
     if (patient.rawConsultation?.triageSummary?.primaryComplaint) {
       setWorkingDiagnosis(patient.rawConsultation.triageSummary.primaryComplaint);
+    }
+    if (patient.rawConsultation?.triageSummary?.approvedInterimAdvice?.[0]) {
+      setAdviceText(patient.rawConsultation.triageSummary.approvedInterimAdvice[0]);
+    } else {
+      setAdviceText(
+        adviceLang === 'HI'
+          ? 'उबला हुआ पानी पिएं, पर्याप्त आराम करें और समय पर दवाएं लें।'
+          : 'Drink clean boiled water, observe adequate rest, and take prescribed medicines on time.'
+      );
     }
 
     try {
@@ -386,21 +342,15 @@ export default function DoctorDashboard() {
       if (res && res.success && res.consultation) {
         setActiveConsultation((prev: any) => ({
           ...prev,
-          ...res.consultation
+          ...res.consultation,
         }));
         if (res.consultation.triageSummary?.primaryComplaint) {
           setWorkingDiagnosis(res.consultation.triageSummary.primaryComplaint);
         }
       }
-      const zoomRes = await ApiService.getZoomMeeting(patient.id);
-      if (zoomRes && zoomRes.zoomMeeting) {
-        setActiveConsultation((prev: any) => ({
-          ...prev,
-          zoomMeeting: zoomRes.zoomMeeting
-        }));
-      }
     } catch (e) {
-      console.warn('Patient select sync note:', e);
+      console.error('Unable to refresh selected consultation:', e);
+      setActionError(e instanceof Error ? e.message : 'Unable to refresh this consultation.');
     }
   };
 
@@ -590,6 +540,11 @@ export default function DoctorDashboard() {
             <span>{rxSuccessMsg}</span>
           </div>
         )}
+        {actionError && (
+          <div role="alert" className="mx-6 mt-4 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-semibold text-red-800">
+            {actionError}
+          </div>
+        )}
 
         {/* MAIN 3-COLUMN CLINICAL WORKSPACE */}
         <main className="p-6 max-w-[1520px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -643,14 +598,16 @@ export default function DoctorDashboard() {
               {/* Dynamic Queue List */}
               <div className="space-y-2.5 mt-1">
                 {queue.map((p) => (
-                  <div
+                  <button
+                    type="button"
                     key={p.id}
                     onClick={() => handleSelectPatient(p)}
+                    aria-pressed={activePatientId === p.id}
                     className={`relative rounded-xl p-3 cursor-pointer transition-all border ${
                       activePatientId === p.id
                         ? 'bg-surface-container-low border-primary ring-1 ring-primary/30 shadow-xs'
                         : 'bg-surface-container-lowest border-surface-container-high hover:bg-surface-container-low shadow-xs'
-                    }`}
+                    } w-full text-left`}
                   >
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${p.stripeColor} rounded-l-xl`}></div>
                     <div className="pl-2">
@@ -674,7 +631,7 @@ export default function DoctorDashboard() {
                         <span>{p.healthCenter}</span>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
 
@@ -751,37 +708,42 @@ export default function DoctorDashboard() {
 
             {/* Live Video Call Component */}
             <div className="relative bg-inverse-surface rounded-2xl overflow-hidden shadow-md aspect-video flex flex-col justify-between p-3 text-inverse-on-surface border border-slate-700">
-              <img
-                className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-80"
-                alt="Live Teleconsultation patient stream"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3vWc29dShfsFryCQZ_Im6eV0bzd70tnsMthXBAbFNOirBH6AsD-eRxktyXYFswG3-MCpPGHMVzOLmIGwNx-J2jNd_m08045i2Rc-AGrIemUuwbCBJrRbGuv0xkILvb6-DUWhWMnbjY5hfcUA6zHVnl4BGaFUZyABrxhJGPWoTnxtyzg79QrUtDQbbsEZhAN5j0sTBp24SuQSpnKYaisBuXGnuV1deKoVUW7elqsoH"
-              />
+              <AgoraVideoPlayer
+                track={agora.remoteVideoTrack}
+                className="absolute inset-0 h-full w-full object-cover"
+              >
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-300">
+                  <span className="material-symbols-outlined text-5xl">person</span>
+                  <span className="text-sm">
+                    {agora.status === 'ERROR' ? 'Agora call unavailable' : 'Waiting for patient video…'}
+                  </span>
+                </div>
+              </AgoraVideoPlayer>
+              <AgoraVideoPlayer
+                track={agora.isVideoEnabled ? agora.localVideoTrack : null}
+                className="absolute bottom-14 right-3 z-10 h-24 w-32 overflow-hidden rounded-lg border border-white/30 bg-slate-900 object-cover"
+              >
+                <span className="flex h-full items-center justify-center text-[10px] text-slate-300">Camera off</span>
+              </AgoraVideoPlayer>
 
-              {/* Video Overlay Header with Zoom Host Button */}
+              {/* Video Overlay Header */}
               <div className="relative z-10 flex items-center justify-between">
                 <div className="flex items-center gap-2 bg-inverse-surface/85 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold">
-                  <span className="w-2.5 h-2.5 rounded-full bg-error animate-ping"></span>
-                  <span>LIVE • {activePatient?.name || 'Aman'} ({activePatient?.healthCenter || 'Barwani PHC'})</span>
+                  <span className={`w-2.5 h-2.5 rounded-full ${agora.status === 'CONNECTED' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+                  <span>{agora.status === 'CONNECTED' ? 'AGORA LIVE' : 'AGORA • ' + agora.status} • {activePatient?.name || 'Patient'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {activeConsultation?.zoomMeeting && (
-                    <a
-                      href={activeConsultation.zoomMeeting.startUrl || activeConsultation.zoomMeeting.joinUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow transition-all border border-blue-400"
-                      title="Launch Zoom Host Meeting"
-                    >
-                      <span>🎥 Start Zoom (Host)</span>
-                      <span className="text-[10px] font-mono opacity-80">ID: {activeConsultation.zoomMeeting.meetingId}</span>
-                    </a>
-                  )}
                   <div className="flex items-center gap-1.5 bg-inverse-surface/85 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-medium">
                     <span className="material-symbols-outlined text-primary-fixed text-sm">hd</span>
-                    <span>Opus Clean</span>
+                    <span>Agora RTC</span>
                   </div>
                 </div>
               </div>
+              {agora.error && (
+                <p role="alert" className="relative z-10 self-start rounded bg-red-950/90 px-2 py-1 text-xs text-red-200">
+                  {agora.error}
+                </p>
+              )}
 
               {/* Video Overlay Footer Controls */}
               <div className="relative z-10 flex items-center justify-between">
@@ -791,14 +753,26 @@ export default function DoctorDashboard() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsMicMuted(!isMicMuted)}
+                    onClick={() => void agora.toggleMicrophone()}
+                    disabled={agora.status !== 'CONNECTED'}
                     className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                      isMicMuted ? 'bg-error text-white' : 'bg-inverse-surface/90 hover:bg-inverse-surface text-white'
+                      !agora.isMicrophoneEnabled ? 'bg-error text-white' : 'bg-inverse-surface/90 hover:bg-inverse-surface text-white'
                     }`}
                     title="Toggle Mic"
                   >
                     <span className="material-symbols-outlined text-base">
-                      {isMicMuted ? 'mic_off' : 'mic'}
+                      {agora.isMicrophoneEnabled ? 'mic' : 'mic_off'}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void agora.toggleVideo()}
+                    disabled={agora.status !== 'CONNECTED'}
+                    className="w-9 h-9 rounded-full bg-inverse-surface/90 hover:bg-inverse-surface flex items-center justify-center text-white transition-all disabled:opacity-50"
+                    title={agora.isVideoEnabled ? 'Turn camera off' : 'Turn camera on'}
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {agora.isVideoEnabled ? 'videocam' : 'videocam_off'}
                     </span>
                   </button>
                   <button
@@ -904,110 +878,112 @@ export default function DoctorDashboard() {
 
               {/* Tab 1: AI Clinical Synthesis */}
               {activeTab === 'summary' && (
-              <div className="space-y-3.5 mt-3 text-on-surface text-xs">
-                {/* Reported Symptoms & Onset */}
-                <div className="bg-surface-container-low rounded-xl p-3 border border-surface-container-high">
-                  <span className="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider">
-                    Reported Symptoms &amp; Onset
-                  </span>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <div className="bg-surface rounded-lg p-2.5 border border-surface-container-high">
-                      <span className="block text-[10px] text-on-surface-variant font-semibold">Measured Vitals</span>
-                      <span className="font-headline font-bold text-base text-error">
-                        {activePatient?.temp || '102.1 °F'}
-                      </span>
-                      <span className="block text-[10px] text-on-surface-variant">Onset: 48 hours ago</span>
-                    </div>
-                    <div className="bg-surface rounded-lg p-2.5 border border-surface-container-high">
-                      <span className="block text-[10px] text-on-surface-variant font-semibold">Episodes / Severity</span>
-                      <span className="font-headline font-bold text-base text-secondary">
-                        {activePatient?.episodes || '3 Episodes'}
-                      </span>
-                      <span className="block text-[10px] text-on-surface-variant">
-                        {activeConsultation?.triageSummary?.structuredDetails?.severity || 'Moderate'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Duration & Safety Guardrails */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-3.5 mt-3 text-on-surface text-xs">
+                  {/* Reported Symptoms & Onset */}
                   <div className="bg-surface-container-low rounded-xl p-3 border border-surface-container-high">
-                    <span className="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider block mb-1">
-                      Chief Complaint &amp; Timeline
+                    <span className="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider">
+                      Reported Symptoms &amp; Onset
                     </span>
-                    <p className="text-on-surface leading-snug">
-                      <strong>{activeConsultation?.triageSummary?.doctorCaseSummary?.timeline || '48 Hours duration.'}</strong>{' '}
-                      {activeConsultation?.triageSummary?.doctorCaseSummary?.chiefComplaint || activePatient?.complaint}
-                    </p>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="bg-surface rounded-lg p-2.5 border border-surface-container-high">
+                        <span className="block text-[10px] text-on-surface-variant font-semibold">Measured Vitals</span>
+                        <span className="font-headline font-bold text-base text-error">
+                          {activePatient?.temp || '-'}
+                        </span>
+                        <span className="block text-[10px] text-on-surface-variant">Onset: 48 hours ago</span>
+                      </div>
+                      <div className="bg-surface rounded-lg p-2.5 border border-surface-container-high">
+                        <span className="block text-[10px] text-on-surface-variant font-semibold">Episodes / Severity</span>
+                        <span className="font-headline font-bold text-base text-secondary">
+                          {activePatient?.episodes || '-'}
+                        </span>
+                        <span className="block text-[10px] text-on-surface-variant">
+                          {activeConsultation?.triageSummary?.structuredDetails?.severity || 'Moderate'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-surface-container-low rounded-xl p-3 border border-surface-container-high">
-                    <span className="text-[11px] text-primary font-bold uppercase tracking-wider block mb-1">
-                      Safety Guardrails Passed
-                    </span>
-                    <ul className="space-y-1 text-on-surface">
-                      <li className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-primary text-sm">verified</span> No seizure or convulsions
-                      </li>
-                      <li className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-primary text-sm">verified</span> Chest indrawing: Absent
-                      </li>
-                      <li className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-primary text-sm">verified</span> Capillary refill &lt; 2s
-                      </li>
-                    </ul>
-                  </div>
-                </div>
 
-                {/* History & Allergies */}
-                <div className="bg-surface-container-high rounded-xl p-3 flex items-center justify-between">
-                  <div>
-                    <span className="block text-[10px] text-on-surface-variant font-semibold">Known Conditions</span>
-                    <span className="font-semibold text-on-surface">
-                      {activeConsultation?.patientProfile?.chronicConditions?.join(', ') || 'None (Healthy child)'}
-                    </span>
+                  {/* Duration & Safety Guardrails */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-surface-container-low rounded-xl p-3 border border-surface-container-high">
+                      <span className="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider block mb-1">
+                        Chief Complaint &amp; Timeline
+                      </span>
+                      <p className="text-on-surface leading-snug">
+                        <strong>{activeConsultation?.triageSummary?.doctorCaseSummary?.timeline || '48 Hours duration.'}</strong>{' '}
+                        {activeConsultation?.triageSummary?.doctorCaseSummary?.chiefComplaint || activePatient?.complaint}
+                      </p>
+                    </div>
+                    <div className="bg-surface-container-low rounded-xl p-3 border border-surface-container-high">
+                      <span className="text-[11px] text-primary font-bold uppercase tracking-wider block mb-1">
+                        Safety Guardrails Passed
+                      </span>
+                      <ul className="space-y-1 text-on-surface">
+                        <li className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-primary text-sm">verified</span> No seizure or convulsions
+                        </li>
+                        <li className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-primary text-sm">verified</span> Chest indrawing: Absent
+                        </li>
+                        <li className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-primary text-sm">verified</span> Capillary refill &lt; 2s
+                        </li>
+                      </ul>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="block text-[10px] text-on-surface-variant font-semibold">Drug Allergies</span>
-                    <span className="font-bold text-primary">NKDA (None Known)</span>
-                  </div>
-                </div>
 
-                {/* ASHA Field Intake Audio Note */}
-                <div className="flex items-center justify-between bg-surface-container-low rounded-xl px-3 py-2 border border-surface-container-high">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if ('speechSynthesis' in window) {
-                          window.speechSynthesis.cancel();
-                          const u = new SpeechSynthesisUtterance(
-                            'आशा दीदी नोट: बच्चे को दो दिन से उल्टी और हल्का बुखार है, पानी नहीं पच रहा।'
-                          );
-                          u.lang = 'hi-IN';
-                          window.speechSynthesis.speak(u);
-                        }
-                      }}
-                      className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center hover:bg-primary-container transition-all"
-                    >
-                      <span className="material-symbols-outlined text-base">play_arrow</span>
-                    </button>
+                  {/* History & Allergies */}
+                  <div className="bg-surface-container-high rounded-xl p-3 flex items-center justify-between">
                     <div>
-                      <span className="block font-semibold text-xs text-on-surface">ASHA Intake Voice Note (Hindi)</span>
-                      <span className="text-[10px] text-on-surface-variant">Tap to listen • 32 seconds recording</span>
+                      <span className="block text-[10px] text-on-surface-variant font-semibold">Known Conditions</span>
+                      <span className="font-semibold text-on-surface">
+                        {activeConsultation?.patientProfile?.chronicConditions?.join(', ') || 'None (Healthy child)'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="block text-[10px] text-on-surface-variant font-semibold">Drug Allergies</span>
+                      <span className="font-bold text-primary">NKDA (None Known)</span>
                     </div>
                   </div>
-                  <svg className="w-20 h-5 text-primary" fill="none" viewBox="0 0 100 24">
-                    <path
-                      d="M0 12 L10 12 L15 3 L22 21 L30 8 L38 16 L45 2 L52 22 L60 10 L68 14 L75 4 L82 20 L90 12 L100 12"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                    ></path>
-                  </svg>
+
+                  {/* ASHA Field Intake Audio Note */}
+                  <div className="flex items-center justify-between bg-surface-container-low rounded-xl px-3 py-2 border border-surface-container-high">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if ('speechSynthesis' in window) {
+                            window.speechSynthesis.cancel();
+                            const pName = activePatient?.name || 'मरीज';
+                            const comp = activeConsultation?.triageSummary?.primaryComplaint || activePatient?.complaint || 'समस्या';
+                            const u = new SpeechSynthesisUtterance(
+                              `आशा दीदी नोट: ${pName} को ${comp} की शिकायत है। कृपया परामर्श दें।`
+                            );
+                            u.lang = 'hi-IN';
+                            window.speechSynthesis.speak(u);
+                          }
+                        }}
+                        className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center hover:bg-primary-container transition-all"
+                      >
+                        <span className="material-symbols-outlined text-base">play_arrow</span>
+                      </button>
+                      <div>
+                        <span className="block font-semibold text-xs text-on-surface">ASHA Intake Voice Note (Hindi)</span>
+                        <span className="text-[10px] text-on-surface-variant">Tap to listen • 32 seconds recording</span>
+                      </div>
+                    </div>
+                    <svg className="w-20 h-5 text-primary" fill="none" viewBox="0 0 100 24">
+                      <path
+                        d="M0 12 L10 12 L15 3 L22 21 L30 8 L38 16 L45 2 L52 22 L60 10 L68 14 L75 4 L82 20 L90 12 L100 12"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      ></path>
+                    </svg>
+                  </div>
                 </div>
-              </div>
               )}
             </div>
           </section>
@@ -1170,7 +1146,7 @@ export default function DoctorDashboard() {
                     </div>
 
                     <div className="flex flex-wrap gap-1 text-[11px] mb-1.5">
-                      {med.schedule.map((slot, idx) => (
+                      {med.schedule.map((slot: string, idx: number) => (
                         <span key={idx} className="bg-surface px-2 py-0.5 rounded font-semibold text-primary border border-surface-container-high">
                           {slot}
                         </span>
@@ -1228,7 +1204,7 @@ export default function DoctorDashboard() {
                       PHC Referral Safe-Trigger (Community Escalation)
                     </span>
                     <span className="text-[11px] text-on-surface-variant block mt-0.5">
-                      If vomiting continues &gt;3 times or child becomes lethargic within 24h, report immediately to Barwani CHC.
+                      {`यदि ${activePatient?.name || 'मरीज'} की स्थिति 24 घंटे में गंभीर होती है या दर्द/बुखार बढ़ता है, तो तुरंत निकटतम स्वास्थ्य केंद्र (CHC) में संपर्क करें।`}
                     </span>
                   </div>
                 </label>
@@ -1247,11 +1223,11 @@ export default function DoctorDashboard() {
                 <button
                   type="button"
                   onClick={handleSignAndDispatch}
-                  disabled={loading}
+                  disabled={loading || activeConsultation?.status !== 'IN_CALL'}
                   className="w-full bg-primary hover:bg-primary-container text-on-primary py-3 px-4 rounded-xl font-headline font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-lg">send_and_archive</span>
-                  <span>{loading ? 'Signing & Dispatching...' : isSigned ? 'Re-Issue e-Prescription' : 'Digitally Sign & Dispatch (WhatsApp / SMS)'}</span>
+                  <span>{loading ? 'Signing Prescription...' : isSigned ? 'Issue Another e-Prescription' : 'Digitally Sign & Issue Prescription'}</span>
                 </button>
 
                 {/* Direct PDF Download / Print Action */}

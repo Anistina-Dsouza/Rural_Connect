@@ -11,6 +11,7 @@
     "start": "tsx src/server.ts"
   },
   "dependencies": {
+    "agora-token": "^2.0.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
@@ -30,4 +31,3 @@
     "typescript": "^5.6.3"
   }
 }
-

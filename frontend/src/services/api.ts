@@ -249,8 +249,18 @@ export const ApiService = {
     }, { success: true });
   },
 
-  async getZoomMeeting(consultationId: string): Promise<{ success: boolean; zoomMeeting: any }> {
-    return apiRequest(`/consultations/${consultationId}/zoom`, {
+  async getAgoraCallCredentials(consultationId: string): Promise<{
+    success: boolean;
+    credentials?: {
+      appId: string;
+      channelName: string;
+      token: string;
+      uid: number;
+      expiresAt: string;
+    };
+    message?: string;
+  }> {
+    return apiRequest(`/consultations/${consultationId}/agora-token`, {
       method: 'GET',
     });
   },

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { store } from '../store.js';
 import { IFamilyProfile } from '../models/types.js';
+import { FamilyProfileModel } from '../models/schemas.js';
 
 // --- FR-1.4: Retrieve all dependent profiles for an account ---
 export const getProfiles = (req: Request, res: Response) => {
@@ -88,6 +89,8 @@ export const updateProfile = (req: Request, res: Response) => {
   if (chronicConditions) target.chronicConditions = chronicConditions;
   if (currentMedications) target.currentMedications = currentMedications;
 
+  store.saveItem('profile', { ...target, userId: cleanPhone });
+
   return res.json({
     success: true,
     message: 'Profile updated successfully',
@@ -108,6 +111,7 @@ export const deleteProfile = (req: Request, res: Response) => {
   }
 
   store.profiles.set(phoneNumber, filtered);
+  FamilyProfileModel.deleteOne({ id }).catch(() => {});
 
   const user = store.users.get(phoneNumber);
   if (user && user.activeProfileId === id) {

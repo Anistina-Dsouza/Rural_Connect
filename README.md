@@ -84,6 +84,7 @@ RuralConnect/
 | **Queue** | `GET` | `/api/queue/:id` | Polls live queue position and wait time |
 | **Consultation**| `POST` | `/api/consultations/:id/chat` | Sends in-call text message |
 | **Consultation**| `POST` | `/api/consultations/:id/end` | Concludes consultation session |
+| **Consultation**| `GET` | `/api/consultations/:id/agora-token` | Issues a short-lived Agora RTC token to an authenticated participant |
 | **Prescriptions**| `POST`| `/api/prescriptions` | Issues e-prescription with drug safety check |
 | **Prescriptions**| `GET` | `/api/prescriptions/:id` | Fetches prescription by ID |
 | **Prescriptions**| `GET` | `/api/prescriptions/verify/:id` | Pharmacist QR code verification portal |
@@ -145,6 +146,10 @@ npm run dev:frontend
 # Build both services for production
 npm run build
 ```
+
+### Agora Video Calls
+
+Set `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` in `backend/.env` using credentials from the Agora Console. The backend issues consultation-scoped RTC tokens that expire after one hour; the certificate is never sent to the browser. Both the patient and assigned doctor must be signed in to join the same consultation channel.
 
 ---
 

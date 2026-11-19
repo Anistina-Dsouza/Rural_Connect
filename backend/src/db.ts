@@ -5,13 +5,10 @@ export async function connectDB(): Promise<boolean> {
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ruralcare';
 
   try {
-    // 3 second timeout so app boots immediately if local mongodb is not running
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 3000,
+      serverSelectionTimeoutMS: process.env.MONGODB_URI ? 10000 : 3000,
     });
-    console.log(`[Database] MongoDB connected successfully to ${uri}`);
-    
-    // Synchronize Mongoose models with the data store
+    console.log('[Database] MongoDB connected.');
     await store.initMongoSync();
 
     mongoose.connection.on('disconnected', () => {
@@ -25,8 +22,11 @@ export async function connectDB(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.warn(`[Database] MongoDB connection not available (${(error as Error).message}).`);
-    console.log(`[Database] Operating in High-Performance Local Persistent Storage Mode (data/db.json).`);
+    console.error(`[Database] MongoDB connection or initialization failed (${(error as Error).name}).`);
+    if (process.env.MONGODB_URI) {
+      throw new Error('Configured MongoDB is unavailable; refusing to start without database persistence.');
+    }
+    console.warn('[Database] Operating in local persistent storage mode (data/db.json).');
     return false;
   }
 }

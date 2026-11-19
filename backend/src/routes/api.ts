@@ -28,7 +28,7 @@ import {
   updateBandwidthMode,
   createReferralNote,
   getReferralNote,
-  getZoomMeeting
+  getAgoraCallCredentials
 } from '../controllers/consultationController.js';
 import { 
   createPrescription, 
@@ -49,7 +49,7 @@ import {
   submitFollowUpCheckIn, 
   getFollowUpHistory 
 } from '../controllers/followUpController.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
@@ -105,25 +105,25 @@ router.get('/facilities', getNearbyFacilities);
 // ========================================================
 // SECTION 7.4: VIRTUAL QUEUE & CONSULTATIONS (FR-4)
 // ========================================================
-router.get('/queue', getAllQueue);
-router.post('/queue/join', joinQueue);
-router.get('/queue/:id', getQueueStatus);
-router.patch('/consultations/:id/status', updateConsultationStatus);
-router.post('/consultations/:id/reconnect', reconnectConsultation);
-router.post('/consultations/:id/bandwidth', updateBandwidthMode);
-router.post('/consultations/:id/chat', sendInCallChatMessage);
-router.post('/consultations/:id/referral', createReferralNote);
-router.get('/consultations/referrals/:id', getReferralNote);
-router.post('/consultations/:id/end', endConsultation);
-router.get('/consultations/:id/zoom', getZoomMeeting);
+router.get('/queue', authenticateToken, authorizeRoles('DOCTOR'), getAllQueue);
+router.post('/queue/join', authenticateToken, authorizeRoles('PATIENT'), joinQueue);
+router.get('/queue/:id', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), getQueueStatus);
+router.patch('/consultations/:id/status', authenticateToken, authorizeRoles('DOCTOR'), updateConsultationStatus);
+router.post('/consultations/:id/reconnect', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), reconnectConsultation);
+router.post('/consultations/:id/bandwidth', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), updateBandwidthMode);
+router.post('/consultations/:id/chat', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), sendInCallChatMessage);
+router.post('/consultations/:id/referral', authenticateToken, authorizeRoles('DOCTOR'), createReferralNote);
+router.get('/consultations/referrals/:id', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), getReferralNote);
+router.post('/consultations/:id/end', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), endConsultation);
+router.get('/consultations/:id/agora-token', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), getAgoraCallCredentials);
 
 // ========================================================
 // SECTION 7.5: PRESCRIPTIONS & DRUG SAFETY (FR-5)
 // ========================================================
-router.get('/prescriptions', getAllPrescriptions);
-router.post('/prescriptions', createPrescription);
-router.get('/prescriptions/phone/:phone', getPrescriptionsByPhone);
-router.get('/prescriptions/:id', getPrescriptionById);
+router.get('/prescriptions', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), getAllPrescriptions);
+router.post('/prescriptions', authenticateToken, authorizeRoles('DOCTOR'), createPrescription);
+router.get('/prescriptions/phone/:phone', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), getPrescriptionsByPhone);
+router.get('/prescriptions/:id', authenticateToken, authorizeRoles('PATIENT', 'DOCTOR'), getPrescriptionById);
 router.get('/prescriptions/verify/:id', verifyPrescription);
 
 // ========================================================
